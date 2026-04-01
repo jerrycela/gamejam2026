@@ -7,6 +7,10 @@ specs_affected:
   - core
   - units
   - meta
+  - map
+  - cards
+  - battle
+  - torture
 risk: medium
 ---
 
@@ -45,6 +49,8 @@ new: vite.config.js
 new: index.html
 new: src/main.js
 new: src/scenes/BootScene.js
+new: src/scenes/GameScene.js (with substate container wiring)
+new: src/scenes/ResultScene.js
 new: src/models/GameState.js
 new: src/models/MetaState.js
 new: src/models/DataManager.js

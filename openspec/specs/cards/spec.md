@@ -39,7 +39,7 @@ Each event type SHALL trigger a specific flow.
 #### Scenario: Battle events
 
 WHEN a Normal/Elite/Boss battle card is flipped
-THEN the game SHALL transition to BattleScene
+THEN the game SHALL switch to the Battle substate within GameScene (NOT a separate scene)
 AND generate heroes based on event difficulty and current glamour level
 
 #### Scenario: Non-battle events

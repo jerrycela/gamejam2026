@@ -121,6 +121,6 @@ Each hero kill SHALL advance all active torture slots.
 
 #### Scenario: Kill-driven torture progress
 
-WHEN a hero is defeated (killed, not just captured)
+WHEN a hero is defeated (HP reaches 0 — capture is a post-defeat branch, all defeats count as kills)
 THEN every occupied torture slot SHALL advance its progress by 1 unit
 AND if any slot reaches its target → conversion completes

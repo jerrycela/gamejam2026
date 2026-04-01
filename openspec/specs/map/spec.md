@@ -61,7 +61,7 @@ THEN the grid SHALL have:
 
 WHEN a hero reaches a cell with multiple outgoing connections
 THEN the hero SHALL take the connection leading to the cell closest to the dungeon heart (greedy shortest-path)
-AND if equidistant, choose randomly
+AND if equidistant, choose the connection with the lowest cell index (deterministic)
 
 #### Scenario: Cell occupancy during battle
 

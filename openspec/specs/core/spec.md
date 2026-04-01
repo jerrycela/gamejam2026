@@ -18,12 +18,13 @@ WHEN a new game run begins
 THEN GameState SHALL be initialized with:
 - `gold`: 0
 - `day`: 1
-- `bossHp`: 100 (base, affected by meta-progression)
-- `bossMaxHp`: 100
+- `bossMaxHp`: derived from MetaState.bossLevel → `100 + (bossLevel - 1) * 20`
+- `bossHp`: initialized to `bossMaxHp`
+- `bossAtk`: derived from MetaState.bossLevel → `15 + (bossLevel - 1) * 5`
 - `glamour`: 0 (華麗度)
 - `hand`: [] (card hand)
 - `prisoners`: [] (captured heroes)
-- `monsters`: [initial monster pool based on unlocks]
+- `monsterRoster`: MonsterInstance[] (see MonsterInstance schema below)
 - `dungeonGrid`: GridCell[] (generated per-run, see GridCell schema below)
 - `flipMatrix`: FlipCard[][] (generated per-run, 3x5 matrix)
 - `tortureSlots`: [{unlocked: true, prisoner: null, progress: 0, target: 0}, {unlocked: true, prisoner: null, progress: 0, target: 0}, {unlocked: false, cost: 500}, {unlocked: false, cost: 1000}]
@@ -49,6 +50,49 @@ Each cell in the dungeon grid SHALL use the following data structure:
 - `room` and `trap` are independent layers; both can coexist on one cell
 - `monster` is at most 1 per cell
 - `connections` is a directed list (top-to-bottom flow toward dungeon heart)
+
+---
+
+### Requirement: MonsterInstance Schema
+
+The game SHALL track individual monster instances available to the player during a run.
+
+```json
+{
+  "instanceId": "m_001",
+  "typeId": "skeleton_knight",
+  "source": "initial" | "converted",
+  "buffFlags": { "converted": false, "hpMult": 1.0, "atkMult": 1.0 },
+  "placedCellId": null | "cell_05"
+}
+```
+
+#### Scenario: Initial monster roster
+
+WHEN a new run begins
+THEN the player SHALL receive one instance of each unlocked monster type from MetaState.
+Example: if `unlockedMonsters` = ["skeleton_knight", "goblin"], roster starts with 2 instances.
+
+#### Scenario: Monster placement consumes roster slot
+
+WHEN a monster is placed on a cell
+THEN `placedCellId` SHALL be set to the cell ID.
+A monster with a non-null `placedCellId` cannot be placed elsewhere (must be removed first).
+
+#### Scenario: Conversion adds to roster
+
+WHEN a torture conversion completes
+THEN a new MonsterInstance SHALL be created with:
+- `typeId`: mapped from the captured hero (see torture/spec.md conversion table)
+- `source`: "converted"
+- `buffFlags`: `{ converted: true, hpMult: 1.15, atkMult: 1.15 }`
+- `placedCellId`: null (available for placement)
+
+#### Scenario: Monster removal
+
+WHEN a monster is removed from a cell (via UI or monster death in battle)
+THEN `placedCellId` SHALL be set to null (returns to available roster).
+Monsters killed in battle are NOT permanently lost — they return to roster between battles with full HP.
 - `drawCount`: 0 (tracks card draw cost escalation)
 - `drawCosts`: [0, 50, 100, 150, 250, 350, 500]
 
