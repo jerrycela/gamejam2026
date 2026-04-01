@@ -5,6 +5,7 @@ import FlipEventHandler from '../substates/FlipEventHandler.js';
 import CardPickUI from '../substates/CardPickUI.js';
 import TopHUD from '../substates/TopHUD.js';
 import DungeonMapUI from '../substates/DungeonMapUI.js';
+import BattleManager from '../models/BattleManager.js';
 import { EVENT_TYPES } from '../utils/constants.js';
 
 // Substate keys
@@ -76,6 +77,9 @@ export default class GameScene extends Phaser.Scene {
     // --- Build DungeonMap UI ---
     this.dungeonMapUI = new DungeonMapUI(this, this.gameState);
     this.containers.dungeonMap.add(this.dungeonMapUI.getContainer());
+
+    // --- Build Battle Manager ---
+    this.battleManager = new BattleManager(this.gameState, this.dataManager);
 
     // --- Build Event Handler ---
     this.flipEventHandler = new FlipEventHandler(this, this.gameState, this);
@@ -172,6 +176,14 @@ export default class GameScene extends Phaser.Scene {
     this._interactionLockCount = 0;
     this.switchSubstate(name);
     this._interactionLockCount = saved;
+  }
+
+  // --- Phaser update loop ---
+
+  update(time, delta) {
+    if (this.battleManager && this.battleManager.isActive()) {
+      this.battleManager.update(delta);
+    }
   }
 
   // --- Battle Overlay (stub) ---

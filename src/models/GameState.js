@@ -174,8 +174,9 @@ export default class GameState {
       this.removeMonster(cell.monster.instanceId);
     }
     const monsterDef = this._dataManager.getMonster(typeId);
-    const hp = monsterDef ? monsterDef.hp : 100;
-    cell.monster = { instanceId, typeId, currentHp: hp };
+    const baseHp = monsterDef ? monsterDef.baseHp : 100;
+    const hpMult = (monster.buffFlags && monster.buffFlags.hpMult) || 1;
+    cell.monster = { instanceId, typeId, currentHp: Math.round(baseHp * hpMult) };
     this.placeMonster(instanceId, cellId);
   }
 
@@ -241,6 +242,33 @@ export default class GameState {
       }
     }
     return true;
+  }
+
+  // --- Battle support ---
+
+  /**
+   * Advance torture progress by 1 for all occupied slots.
+   * @returns {{ slot: object, prisoner: object }[]} completed conversions
+   */
+  advanceTortureProgress() {
+    const completed = [];
+    for (const slot of this.tortureSlots) {
+      if (!slot.unlocked || !slot.prisoner) continue;
+      slot.progress += 1;
+      if (slot.progress >= slot.target) {
+        completed.push({ slot, prisoner: slot.prisoner });
+      }
+    }
+    return completed;
+  }
+
+  /**
+   * Add a captured hero to the prisoner list.
+   * @param {string} heroTypeId
+   * @param {string} heroName
+   */
+  addPrisoner(heroTypeId, heroName) {
+    this.prisoners.push({ heroTypeId, heroName, capturedDay: this.day });
   }
 
   advanceDay() {

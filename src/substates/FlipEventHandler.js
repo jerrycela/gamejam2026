@@ -32,19 +32,26 @@ export default class FlipEventHandler {
   }
 
   _handleBattle(flipCard, unlockCallback) {
-    // Show toast
     this._showToast('戰鬥開始！', 1000, () => {
-      // Switch to dungeonMap + show battle overlay (forced: system-initiated, not user input)
       this.gameScene.switchSubstateForced('dungeonMap');
       this.gameScene.showBattleOverlay(flipCard.eventType);
 
-      // Battle stub: "結束戰鬥" button will call hideBattleOverlay + return
-      // The battle overlay's end button calls this resolve flow
-      this.gameScene._onBattleEnd = () => {
+      // Start real battle
+      this.gameScene.battleManager.start(flipCard.eventType);
+
+      this.gameScene.battleManager.once('battleEnd', (result) => {
         this.gameScene.hideBattleOverlay();
         this.gameScene.returnToPreviousSubstate();
         this.gameState.resolveCard(flipCard.row, flipCard.col);
+        this.gameScene.topHUD.update();
         this._checkDayEnd(unlockCallback);
+      });
+
+      // Wire the existing "結束戰鬥" button as a force-end (for debug)
+      this.gameScene._onBattleEnd = () => {
+        if (this.gameScene.battleManager.isActive()) {
+          this.gameScene.battleManager.forceEnd('defenseSuccess');
+        }
       };
     });
   }
