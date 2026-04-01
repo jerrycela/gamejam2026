@@ -1,7 +1,7 @@
 ---
 id: "001"
 title: "Initial Project Setup — Phaser scaffold + data configs + core state"
-status: proposed
+status: approved
 date: "2026-04-01"
 specs_affected:
   - core
