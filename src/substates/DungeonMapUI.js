@@ -54,6 +54,59 @@ export default class DungeonMapUI {
     return this._rootContainer;
   }
 
+  /** Return the map world container for adding battle visuals. */
+  getMapWorldContainer() { return this._mapWorldContainer; }
+
+  /** Get cell world position by cellId. Returns {x, y} or null. */
+  getCellPosition(cellId) {
+    const cell = this.gameState.getCell(cellId);
+    return cell ? { x: cell.position.x, y: cell.position.y } : null;
+  }
+
+  /** Highlight a cell border with the given color. Pass null to clear. */
+  setCellHighlight(cellId, color) {
+    const cont = this._cellContainers.find(c => c.getData('cellId') === cellId);
+    if (!cont) return;
+    const border = cont.getData('border');
+    if (!border) return;
+    const half = CELL_SIZE / 2;
+    border.clear();
+    if (color !== null) {
+      border.lineStyle(3, color, 1);
+      border.strokeRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, 8);
+    } else {
+      // Restore original via full redraw
+      const bgFill = cont.getData('bgFill');
+      bgFill.clear();
+      const cell = this.gameState.getCell(cellId);
+      if (cell) this._drawCellVisual(cell, border, bgFill, half);
+    }
+  }
+
+  /** Clear all battle-related cell highlights by rebuilding cells. */
+  clearBattleHighlights() {
+    this._rebuildCells();
+  }
+
+  /**
+   * Enable/disable battle mode. In battle mode:
+   * - Hand area hidden, card taps disabled
+   * - Cell tap opens no popup, no card/monster placement
+   * - Scroll still works
+   */
+  setBattleMode(active) {
+    this._battleMode = active;
+    this._handAreaContainer.setVisible(!active);
+    if (active) {
+      this._hidePopup();
+      this._clearSelection();
+      if (this._handZone) this._handZone.disableInteractive();
+      this._isHandTouch = false;
+    } else {
+      if (this._handZone) this._handZone.setInteractive();
+    }
+  }
+
   /**
    * Rebuild all cell visuals and hand area from current gameState.
    * Call this whenever gameState.dungeonGrid or gameState.hand changes.
@@ -254,6 +307,7 @@ export default class DungeonMapUI {
     // Store reference data on container for later use
     cont.setData('cellId', cell.id);
     cont.setData('border', border);
+    cont.setData('bgFill', bgFill);
 
     return cont;
   }
@@ -515,6 +569,7 @@ export default class DungeonMapUI {
    * Manually hit-tests pointer position against cell containers in map world space.
    */
   _handleMapTap(pointer) {
+    if (this._battleMode) return;
     // Convert screen pointer to map world coordinates
     const worldX = pointer.x;
     const worldY = pointer.y - (TOP_HUD_HEIGHT + this._scrollY);
@@ -557,6 +612,7 @@ export default class DungeonMapUI {
   // ---------------------------------------------------------------------------
 
   _onCardTap(handIndex) {
+    if (this._battleMode) return;
     if (this.selectionState.mode === 'card') {
       if (this.selectionState.handIndex === handIndex) {
         // Re-tap selected card → cancel

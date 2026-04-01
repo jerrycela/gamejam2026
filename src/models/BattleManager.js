@@ -4,7 +4,7 @@
 import Phaser from 'phaser';
 import HeroInstance from './HeroInstance.js';
 
-const MOVE_DURATION = 400; // ms per cell transition
+export const MOVE_DURATION = 400; // ms per cell transition
 
 export default class BattleManager extends Phaser.Events.EventEmitter {
   /**

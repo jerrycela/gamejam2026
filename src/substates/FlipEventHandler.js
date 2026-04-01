@@ -35,11 +35,12 @@ export default class FlipEventHandler {
     this._showToast('戰鬥開始！', 1000, () => {
       this.gameScene.switchSubstateForced('dungeonMap');
       this.gameScene.showBattleOverlay(flipCard.eventType);
-
-      // Start real battle
       this.gameScene.battleManager.start(flipCard.eventType);
+      this.gameScene.battleUI.start();
 
-      this.gameScene.battleManager.once('battleEnd', (result) => {
+      // Single owner: wait for BattleUI to finish banner, then clean up
+      this.scene.events.once('battleUiComplete', () => {
+        this.gameScene.battleUI.stop();
         this.gameScene.hideBattleOverlay();
         this.gameScene.returnToPreviousSubstate();
         this.gameState.resolveCard(flipCard.row, flipCard.col);

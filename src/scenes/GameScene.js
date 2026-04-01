@@ -6,6 +6,7 @@ import CardPickUI from '../substates/CardPickUI.js';
 import TopHUD from '../substates/TopHUD.js';
 import DungeonMapUI from '../substates/DungeonMapUI.js';
 import BattleManager from '../models/BattleManager.js';
+import BattleUI from '../substates/BattleUI.js';
 import { EVENT_TYPES } from '../utils/constants.js';
 
 // Substate keys
@@ -80,6 +81,9 @@ export default class GameScene extends Phaser.Scene {
 
     // --- Build Battle Manager ---
     this.battleManager = new BattleManager(this.gameState, this.dataManager);
+
+    // --- Build Battle UI ---
+    this.battleUI = new BattleUI(this, this.battleManager, this.gameState, this.dungeonMapUI);
 
     // --- Build Event Handler ---
     this.flipEventHandler = new FlipEventHandler(this, this.gameState, this);
@@ -183,41 +187,95 @@ export default class GameScene extends Phaser.Scene {
   update(time, delta) {
     if (this.battleManager && this.battleManager.isActive()) {
       this.battleManager.update(delta);
+      const alive = this.battleManager.getHeroes().filter(h => h.state !== 'dead' && h.state !== 'captured').length;
+      if (this._battleHeroCountText) this._battleHeroCountText.setText(`存活: ${alive}`);
+    }
+    if (this.battleUI) {
+      this.battleUI.update(delta);
     }
   }
 
-  // --- Battle Overlay (stub) ---
+  // --- Battle Overlay ---
 
-  _buildBattleOverlay(width, contentH) {
+  _buildBattleOverlay(width, height) {
     const container = this.containers.battle;
     container.removeAll(true);
 
-    const overlay = this.add.rectangle(width / 2, contentH / 2, width, contentH, 0x000000, 0.6);
-    const title = this.add.text(width / 2, contentH / 2 - 40, '戰鬥中...', {
-      fontSize: '28px', color: '#e74c3c', fontFamily: 'serif'
+    // --- Top bar (y=0..48): title + event type + hero alive count ---
+    const topBg = this.add.rectangle(width / 2, 24, width, 48, 0x1a1a2e, 0.92)
+      .setInteractive(); // blocks clicks on top bar
+
+    const titleText = this.add.text(16, 24, '戰鬥中...', {
+      fontSize: '18px', color: '#e74c3c', fontFamily: 'serif',
+    }).setOrigin(0, 0.5);
+
+    this._battleTypeText = this.add.text(width / 2, 24, '', {
+      fontSize: '14px', color: '#cccccc', fontFamily: 'monospace',
     }).setOrigin(0.5);
 
-    this._battleTypeText = this.add.text(width / 2, contentH / 2, '', {
-      fontSize: '16px', color: '#cccccc', fontFamily: 'monospace'
-    }).setOrigin(0.5);
+    this._battleHeroCountText = this.add.text(width - 12, 24, '', {
+      fontSize: '13px', color: '#aaaaff', fontFamily: 'monospace',
+    }).setOrigin(1, 0.5);
 
-    const endBtn = this.add.text(width / 2, contentH / 2 + 60, '結束戰鬥', {
-      fontSize: '20px', color: '#ffffff', fontFamily: 'sans-serif',
-      backgroundColor: '#27ae60', padding: { x: 20, y: 10 }
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    // --- Middle zone (y=48..height-104): TRANSPARENT, no interactive ---
+    // Intentionally no rectangle here so scroll/clicks pass through to map
+
+    // --- Bottom bar (y=height-104..height-56): speed buttons + debug end ---
+    const botBarY = height - 80; // center of the 48px bottom bar (height-104 to height-56)
+    const botBg = this.add.rectangle(width / 2, botBarY, width, 48, 0x1a1a2e, 0.92)
+      .setInteractive(); // blocks clicks on bottom bar
+
+    // Speed buttons
+    const btnDefs = [
+      { label: 'x1',   x: 40,  speed: 1 },
+      { label: 'x2',   x: 96,  speed: 2 },
+      { label: 'Skip', x: 160, speed: 10 },
+    ];
+    this._speedButtons = [];
+
+    for (const def of btnDefs) {
+      const btn = this.add.text(def.x, botBarY, `[${def.label}]`, {
+        fontSize: '15px', color: '#aaaaff', fontFamily: 'monospace',
+        backgroundColor: '#2d2d5e', padding: { x: 8, y: 4 },
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+      btn.on('pointerdown', () => {
+        if (this.battleManager) this.battleManager.setSpeedMultiplier(def.speed);
+        this._updateSpeedButtonHighlight(def.speed);
+      });
+
+      this._speedButtons.push({ btn, speed: def.speed });
+    }
+
+    // Debug: force end button
+    const endBtn = this.add.text(width - 16, botBarY, '結束戰鬥', {
+      fontSize: '13px', color: '#888888', fontFamily: 'sans-serif',
+      backgroundColor: '#333333', padding: { x: 8, y: 4 },
+    }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
 
     endBtn.on('pointerdown', () => {
       if (this._onBattleEnd) this._onBattleEnd();
     });
 
-    container.add([overlay, title, this._battleTypeText, endBtn]);
+    const speedBtns = this._speedButtons.map(s => s.btn);
+    container.add([topBg, titleText, this._battleTypeText, this._battleHeroCountText, botBg, ...speedBtns, endBtn]);
     container.setVisible(false);
     container.setDepth(1500);
+  }
+
+  _updateSpeedButtonHighlight(activeSpeed) {
+    if (!this._speedButtons) return;
+    for (const { btn, speed } of this._speedButtons) {
+      btn.setColor(speed === activeSpeed ? '#f1c40f' : '#aaaaff');
+    }
   }
 
   showBattleOverlay(eventType) {
     const def = EVENT_TYPES[eventType];
     this._battleTypeText.setText(def ? def.label : eventType);
+    this._battleHeroCountText.setText('');
+    this._updateSpeedButtonHighlight(1);
+    if (this.battleManager) this.battleManager.setSpeedMultiplier(1);
     this.containers.battle.setVisible(true);
     this.lockInteraction();
   }
