@@ -43,7 +43,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
 
   /**
    * Start a new battle.
-   * @param {'normalBattle'|'eliteBattle'|'bossBattle'} eventType
+   * @param {'normalBattle'|'eliteBattle'|'bossBattle'|'finalBattle'} eventType
    */
   start(eventType) {
     this._heroes = this._generateHeroes(eventType);
@@ -542,7 +542,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
   _generateFinalBattleHeroes() {
     const day = this._gameState.day;
     const configDay = Math.min(day, 7);
-    const config = FINAL_BATTLE_CONFIG[configDay] || FINAL_BATTLE_CONFIG[7];
+    const config = FINAL_BATTLE_CONFIG[configDay] ?? FINAL_BATTLE_CONFIG[3];
 
     const heroes = [];
 
@@ -556,6 +556,15 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
         const def = this._dataManager.getHero(id);
         return { id, weight: (def && def.spawnWeight) ? (def.spawnWeight.boss || 1) : 1 };
       }).filter(w => w.weight > 0);
+      if (weighted.length === 0) {
+        const fallbackId = fullPool[Math.floor(Math.random() * fullPool.length)];
+        const hero = new HeroInstance(fallbackId, heroes.length, this._dataManager);
+        hero.maxHp = Math.round(hero.maxHp * config.statMultiplier);
+        hero.hp = hero.maxHp;
+        hero.atk = Math.round(hero.atk * config.statMultiplier);
+        heroes.push(hero);
+        continue;
+      }
       const totalWeight = weighted.reduce((sum, w) => sum + w.weight, 0);
       let roll = Math.random() * totalWeight;
       let typeId = weighted[0].id;

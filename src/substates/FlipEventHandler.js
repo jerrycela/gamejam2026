@@ -60,6 +60,7 @@ export default class FlipEventHandler {
     });
   }
 
+  // unlockCallback is intentionally not called — the run ends and GameScene is abandoned.
   _handleFinalBattle(flipCard, unlockCallback) {
     this.gameState.finalBattleTriggered = true;
     this._showToast('勇者來襲！終局決戰！', 1500, () => {

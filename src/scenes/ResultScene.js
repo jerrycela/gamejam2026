@@ -13,7 +13,6 @@ export default class ResultScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     const metaState = this.registry.get('metaState');
-    const gameState = this.registry.get('gameState');
     if (metaState && this.result) {
       metaState.recordRunEnd(this.result.victory);
     }
