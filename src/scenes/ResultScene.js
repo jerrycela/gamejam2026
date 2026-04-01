@@ -6,57 +6,56 @@ export default class ResultScene extends Phaser.Scene {
   }
 
   init(data) {
-    // data: { victory: bool, stats: {...} }
     this.result = data;
   }
 
   create() {
     const { width, height } = this.scale;
 
-    // Record run result and snapshot summary before displaying
     const metaState = this.registry.get('metaState');
     const gameState = this.registry.get('gameState');
     if (metaState && this.result) {
       metaState.recordRunEnd(this.result.victory);
     }
 
-    // Snapshot summary at this moment (immutable for display)
-    const summary = {
-      killCount: gameState?.killCount ?? 0,
-      gold: gameState?.gold ?? 0,
-      day: gameState?.day ?? 1,
-      bossLevel: metaState?.bossLevel ?? 1,
-      totalRuns: metaState?.totalRuns ?? 0,
-    };
+    const stats = this.result?.stats || {};
+    const victory = this.result?.victory;
 
-    const title = this.result?.victory ? '勝利！' : '失敗...';
-    const color = this.result?.victory ? '#27ae60' : '#e74c3c';
-
-    this.add.text(width / 2, height / 3, title, {
+    // Title
+    const title = victory ? '魔王萬歲！' : '勇者得逞...';
+    const color = victory ? '#27ae60' : '#e74c3c';
+    this.add.text(width / 2, height / 4, title, {
       fontSize: '48px', color, fontFamily: 'serif'
     }).setOrigin(0.5);
 
-    // Run summary from snapshot
-    const summaryLines = [
-      `擊殺英雄: ${summary.killCount}`,
-      `金幣: ${summary.gold}`,
-      `天數: ${summary.day}`,
-      `魔王等級: ${summary.bossLevel}`,
-      `總遊玩次數: ${summary.totalRuns}`,
-    ];
-    if (summaryLines.length > 0) {
-      this.add.text(width / 2, height / 2 - 40, summaryLines.join('\n'), {
-        fontSize: '16px', color: '#cccccc', fontFamily: 'monospace',
-        align: 'center', lineSpacing: 8
+    // Victory bonus text
+    if (victory) {
+      this.add.text(width / 2, height / 4 + 50, '魔王等級提升！', {
+        fontSize: '20px', color: '#f1c40f', fontFamily: 'sans-serif'
       }).setOrigin(0.5);
     }
 
-    this.add.text(width / 2, height * 0.7, '點擊重新開始', {
-      fontSize: '18px', color: '#aaa', fontFamily: 'monospace'
+    // Run summary
+    const summaryLines = [
+      `存活天數: ${stats.day ?? 1}`,
+      `擊殺英雄: ${stats.killCount ?? 0}`,
+      `剩餘金幣: ${stats.gold ?? 0}`,
+      `擁有怪物: ${stats.monstersOwned ?? 0}`,
+      `魔王等級: ${metaState?.bossLevel ?? 1}`,
+      `總遊玩次數: ${metaState?.totalRuns ?? 0}`,
+    ];
+    this.add.text(width / 2, height / 2 - 20, summaryLines.join('\n'), {
+      fontSize: '16px', color: '#cccccc', fontFamily: 'monospace',
+      align: 'center', lineSpacing: 8
     }).setOrigin(0.5);
 
-    this.input.once('pointerdown', () => {
-      this.scene.start('GameScene');
-    });
+    // Restart button
+    this.add.text(width / 2, height * 0.75, '再次挑戰', {
+      fontSize: '22px', color: '#ffffff', fontFamily: 'sans-serif',
+      backgroundColor: 'rgba(44,62,80,0.8)', padding: { x: 24, y: 12 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this.scene.start('GameScene');
+      });
   }
 }
