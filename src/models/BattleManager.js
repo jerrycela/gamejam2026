@@ -580,12 +580,12 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       heroes.push(hero);
     }
 
-    // Glamour scaling (same as normal battles)
+    // Glamour scaling — followers only; legendary hero has fixed stats
     const glamourMult = 1 + this._gameState.glamour / 500;
-    for (const h of heroes) {
-      h.maxHp = Math.round(h.maxHp * glamourMult);
-      h.hp = h.maxHp;
-      h.atk = Math.round(h.atk * glamourMult);
+    for (let i = 1; i < heroes.length; i++) {
+      heroes[i].maxHp = Math.round(heroes[i].maxHp * glamourMult);
+      heroes[i].hp = heroes[i].maxHp;
+      heroes[i].atk = Math.round(heroes[i].atk * glamourMult);
     }
 
     return heroes;
