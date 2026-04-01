@@ -25,14 +25,14 @@ THEN the following SHALL apply:
 
 **Map World:**
 - Map canvas SHALL be at least 375x1200px (taller than viewport for vertical scrolling)
-- Use `this.cameras.main.setBounds(0, 0, mapWidth, mapHeight)` for scroll bounds
+- Scroll bounds enforced via clamping container.y within [-(mapHeight - viewportH), 0]
 - HUD (top, ~48px) and bottom bar (~120px = 64px hand + 56px actions) are fixed UI layers, NOT part of the scrollable world
 - Effective visible map area: ~375x644px viewport into a 375x1200+ world
 
 **Touch Input Arbitration:**
 - Pointer move > 8px from start position → treat as pan (camera scroll)
 - Pointer move <= 8px and released → treat as tap (cell interaction)
-- Pan SHALL use camera.scrollX/scrollY updates, NOT container position changes
+- Pan SHALL use container.y offset (not camera scroll) because GameScene shares a single Phaser scene across all substates. Camera-based scroll would affect non-map substates.
 - Pan SHALL have inertia-based momentum (deceleration over ~300ms)
 
 **Performance:**
@@ -108,8 +108,8 @@ Placement SHALL follow a consistent "select first, then place" pattern.
 #### Scenario: Tap cell without selection
 
 WHEN a player taps a cell without any card/monster selected
-THEN a detail popup SHALL show room info, trap info, monster info, and synergy bonus
-AND offer actions: [Upgrade] [Replace] [Remove Monster]
+THEN a detail popup SHALL show room info, trap info, and monster info (read-only)
+AND MVP: read-only info display with [Close] button. Post-MVP: offer actions [Upgrade] [Replace] [Remove Monster] with synergy bonus.
 
 ---
 

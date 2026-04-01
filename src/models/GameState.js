@@ -3,6 +3,7 @@
 // Recreate this object at the start of every new run — do not reuse across runs.
 
 import FlipMatrixGenerator from './FlipMatrixGenerator.js';
+import GridTopologyGenerator from './GridTopologyGenerator.js';
 
 export default class GameState {
   /**
@@ -44,7 +45,7 @@ export default class GameState {
 
     // --- Dungeon map (populated later by the map generator) ---
     /** @type {object[]} Array of cell objects; structure defined by MapGenerator */
-    this.dungeonGrid = [];
+    this.dungeonGrid = GridTopologyGenerator.generate();
 
     // --- Flip matrix (populated later during map setup) ---
     /** @type {any[]} */
@@ -134,6 +135,56 @@ export default class GameState {
       return;
     }
     monster.placedCellId = null;
+  }
+
+  // --- Cell management ---
+
+  getCell(cellId) {
+    return this.dungeonGrid.find(c => c.id === cellId);
+  }
+
+  setCellRoom(cellId, typeId, level) {
+    const cell = this.getCell(cellId);
+    if (!cell || cell.type !== 'normal') return;
+    cell.room = { typeId, level };
+  }
+
+  setCellTrap(cellId, typeId, level) {
+    const cell = this.getCell(cellId);
+    if (!cell || cell.type !== 'normal') return;
+    cell.trap = { typeId, level };
+  }
+
+  setCellMonster(cellId, instanceId, typeId) {
+    // Atomic operation: if monster is already placed elsewhere, remove first
+    const monster = this.monsterRoster.find(m => m.instanceId === instanceId);
+    if (!monster) {
+      console.warn('[GameState] setCellMonster: instanceId not found:', instanceId);
+      return;
+    }
+    if (monster.placedCellId && monster.placedCellId !== cellId) {
+      const oldCell = this.getCell(monster.placedCellId);
+      if (oldCell) oldCell.monster = null;
+      this.removeMonster(instanceId);
+    }
+    const cell = this.getCell(cellId);
+    if (!cell || cell.type !== 'normal') return;
+    // Remove existing monster on target cell (if different from the one being placed)
+    if (cell.monster && cell.monster.instanceId !== instanceId) {
+      this.removeMonster(cell.monster.instanceId);
+    }
+    const monsterDef = this._dataManager.getMonster(typeId);
+    const hp = monsterDef ? monsterDef.hp : 100;
+    cell.monster = { instanceId, typeId, currentHp: hp };
+    this.placeMonster(instanceId, cellId);
+  }
+
+  removeCellMonster(cellId) {
+    const cell = this.getCell(cellId);
+    if (!cell || !cell.monster) return;
+    const { instanceId } = cell.monster;
+    cell.monster = null;
+    this.removeMonster(instanceId);
   }
 
   // --- Draw cost ---

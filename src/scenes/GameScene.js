@@ -4,6 +4,7 @@ import FlipMatrixUI from '../substates/FlipMatrixUI.js';
 import FlipEventHandler from '../substates/FlipEventHandler.js';
 import CardPickUI from '../substates/CardPickUI.js';
 import TopHUD from '../substates/TopHUD.js';
+import DungeonMapUI from '../substates/DungeonMapUI.js';
 import { EVENT_TYPES } from '../utils/constants.js';
 
 // Substate keys
@@ -51,8 +52,8 @@ export default class GameScene extends Phaser.Scene {
     SUBSTATES.forEach((key) => {
       const container = this.add.container(0, 0);
 
-      // Skip placeholder for flipMatrix (will be populated by FlipMatrixUI)
-      if (key !== 'flipMatrix') {
+      // Skip placeholder for substates with dedicated UI classes
+      if (key !== 'flipMatrix' && key !== 'dungeonMap') {
         const bg = this.add.rectangle(width / 2, contentH / 2, width, contentH, 0x1a1a2e);
         const label = this.add.text(width / 2, contentH / 2, key, {
           fontSize: '24px', color: '#555577', fontFamily: 'monospace',
@@ -68,9 +69,13 @@ export default class GameScene extends Phaser.Scene {
     this.flipMatrixUI = new FlipMatrixUI(this, this.gameState);
     this.containers.flipMatrix.add(this.flipMatrixUI.getContainer());
 
-    // --- Build Top HUD ---
+    // --- Build Top HUD (scene-level, not tied to any substate) ---
     this.topHUD = new TopHUD(this, this.gameState);
-    this.containers.flipMatrix.add(this.topHUD.getContainer());
+    this.topHUD.getContainer().setDepth(1000);
+
+    // --- Build DungeonMap UI ---
+    this.dungeonMapUI = new DungeonMapUI(this, this.gameState);
+    this.containers.dungeonMap.add(this.dungeonMapUI.getContainer());
 
     // --- Build Event Handler ---
     this.flipEventHandler = new FlipEventHandler(this, this.gameState, this);
@@ -138,6 +143,11 @@ export default class GameScene extends Phaser.Scene {
     this.containers[name].setVisible(true);
     this.currentSubstate = name;
     this._updateTabHighlight(name);
+
+    // Refresh DungeonMapUI hand area when switching to dungeonMap
+    if (name === 'dungeonMap' && this.dungeonMapUI) {
+      this.dungeonMapUI.refresh();
+    }
   }
 
   returnToPreviousSubstate() {

@@ -39,6 +39,7 @@ Each cell in the dungeon grid SHALL use the following data structure:
 ```json
 {
   "id": "cell_01",
+  "type": "normal" | "portal" | "heart",
   "position": { "x": 150, "y": 275 },
   "connections": ["cell_02", "cell_03"],
   "room": { "typeId": "hatchery", "level": 1 } | null,
