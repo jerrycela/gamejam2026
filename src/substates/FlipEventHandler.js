@@ -1,3 +1,5 @@
+import { rollStarRating } from '../utils/constants.js';
+
 export default class FlipEventHandler {
   constructor(scene, gameState, gameScene) {
     this.scene = scene;
@@ -32,8 +34,8 @@ export default class FlipEventHandler {
   _handleBattle(flipCard, unlockCallback) {
     // Show toast
     this._showToast('戰鬥開始！', 1000, () => {
-      // Switch to dungeonMap + show battle overlay
-      this.gameScene.switchSubstate('dungeonMap');
+      // Switch to dungeonMap + show battle overlay (forced: system-initiated, not user input)
+      this.gameScene.switchSubstateForced('dungeonMap');
       this.gameScene.showBattleOverlay(flipCard.eventType);
 
       // Battle stub: "結束戰鬥" button will call hideBattleOverlay + return
@@ -42,8 +44,7 @@ export default class FlipEventHandler {
         this.gameScene.hideBattleOverlay();
         this.gameScene.returnToPreviousSubstate();
         this.gameState.resolveCard(flipCard.row, flipCard.col);
-        this._checkDayEnd();
-        unlockCallback();
+        this._checkDayEnd(unlockCallback);
       };
     });
   }
@@ -57,8 +58,7 @@ export default class FlipEventHandler {
         cost: 0,
       }, () => {
         this.gameState.resolveCard(flipCard.row, flipCard.col);
-        this._checkDayEnd();
-        unlockCallback();
+        this._checkDayEnd(unlockCallback);
       });
     } else if (roll < 0.8) {
       // 20%: Direct gold
@@ -66,26 +66,21 @@ export default class FlipEventHandler {
       this.gameState.gold += gold;
       this._showToast(`獲得 ${gold} 金幣！`, 1200, () => {
         this.gameState.resolveCard(flipCard.row, flipCard.col);
-        this._checkDayEnd();
-        unlockCallback();
+        this._checkDayEnd(unlockCallback);
       });
     } else {
       // 20%: Random card to hand
-      const dataManager = this.gameScene.dataManager;
-      const allRooms = dataManager.rooms;
-      const allTraps = dataManager.traps;
+      const dataManager = this.scene.registry.get('dataManager');
       const pool = [
-        ...allRooms.map(r => ({ type: 'room', id: r.id })),
-        ...allTraps.map(t => ({ type: 'trap', id: t.id })),
+        ...dataManager.rooms.map(r => ({ type: 'room', id: r.id })),
+        ...dataManager.traps.map(t => ({ type: 'trap', id: t.id })),
       ];
       const pick = pool[Math.floor(Math.random() * pool.length)];
-      const starRoll = Math.random() * 100;
-      const starRating = starRoll < 70 ? 1 : (starRoll < 95 ? 2 : 3);
+      const starRating = rollStarRating();
       this.gameState.hand.push({ ...pick, starRating });
       this._showToast(`獲得 ${pick.type === 'room' ? '房間' : '陷阱'}卡！`, 1200, () => {
         this.gameState.resolveCard(flipCard.row, flipCard.col);
-        this._checkDayEnd();
-        unlockCallback();
+        this._checkDayEnd(unlockCallback);
       });
     }
   }
@@ -95,8 +90,7 @@ export default class FlipEventHandler {
     this.gameState.gold += gold;
     this._showToast(`寶藏！獲得 ${gold} 金幣！`, 1500, () => {
       this.gameState.resolveCard(flipCard.row, flipCard.col);
-      this._checkDayEnd();
-      unlockCallback();
+      this._checkDayEnd(unlockCallback);
     });
   }
 
@@ -104,12 +98,11 @@ export default class FlipEventHandler {
     // Open shop via CardPick container (reusing the modal system)
     this.gameScene.openShop(() => {
       this.gameState.resolveCard(flipCard.row, flipCard.col);
-      this._checkDayEnd();
-      unlockCallback();
+      this._checkDayEnd(unlockCallback);
     });
   }
 
-  _checkDayEnd() {
+  _checkDayEnd(unlockCallback) {
     if (this.gameState.isMatrixComplete()) {
       this._showToast('本日結束', 2000, () => {
         this.gameState.advanceDay();
@@ -121,7 +114,10 @@ export default class FlipEventHandler {
         if (this.gameScene.topHUD) {
           this.gameScene.topHUD.update();
         }
+        unlockCallback();
       });
+    } else {
+      unlockCallback();
     }
   }
 

@@ -1,4 +1,4 @@
-import { STAR_WEIGHTS } from '../utils/constants.js';
+import { rollStarRating } from '../utils/constants.js';
 
 export default class CardPickUI {
   constructor(scene, gameState) {
@@ -117,29 +117,15 @@ export default class CardPickUI {
 
   _generateOptions() {
     const dataManager = this.scene.registry.get('dataManager');
-    const allRooms = dataManager.rooms;
-    const allTraps = dataManager.traps;
     const pool = [
-      ...allRooms.map(r => ({ type: 'room', id: r.id })),
-      ...allTraps.map(t => ({ type: 'trap', id: t.id })),
+      ...dataManager.rooms.map(r => ({ type: 'room', id: r.id })),
+      ...dataManager.traps.map(t => ({ type: 'trap', id: t.id })),
     ];
-
-    const options = [];
-    for (let i = 0; i < 3; i++) {
-      const pick = pool[Math.floor(Math.random() * pool.length)];
-      const starRating = CardPickUI._rollStar();
-      options.push({ ...pick, starRating });
+    // Fisher-Yates shuffle to avoid duplicate picks
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    return options;
-  }
-
-  static _rollStar() {
-    const totalWeight = STAR_WEIGHTS.reduce((a, b) => a + b.weight, 0);
-    let roll = Math.random() * totalWeight;
-    for (const { star, weight } of STAR_WEIGHTS) {
-      roll -= weight;
-      if (roll <= 0) return star;
-    }
-    return 1;
+    return pool.slice(0, 3).map(pick => ({ ...pick, starRating: rollStarRating() }));
   }
 }

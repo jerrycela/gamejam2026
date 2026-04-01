@@ -38,6 +38,9 @@ export default class GameScene extends Phaser.Scene {
     this.gameState = new GameState(this.metaState, this.dataManager);
     this.registry.set('gameState', this.gameState);
 
+    // Scene-level interaction lock counter (supports nested lock/unlock)
+    this._interactionLockCount = 0;
+
     // Substate navigation history
     this._substateHistory = [];
 
@@ -74,9 +77,11 @@ export default class GameScene extends Phaser.Scene {
 
     // Wire flip callback
     this.flipMatrixUI.onFlip((card, unlockCallback) => {
+      this.lockInteraction();
       this.topHUD.update();
       this.flipEventHandler.handleEvent(card, () => {
         this.topHUD.update();
+        this.unlockInteraction();
         unlockCallback();
       });
     });
@@ -87,6 +92,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Wire draw button
     this.topHUD.onDraw(() => {
+      if (this._interactionLockCount > 0) return;
       const cost = this.gameState.getDrawCost();
       if (this.gameState.gold < cost) return;
       this.gameState.gold -= cost;
@@ -111,6 +117,7 @@ export default class GameScene extends Phaser.Scene {
   // --- Substate Navigation ---
 
   switchSubstate(name) {
+    if (this._interactionLockCount > 0) return;
     if (!SUBSTATES.includes(name)) {
       console.warn(`[GameScene] Unknown substate: ${name}`);
       return;
@@ -137,8 +144,24 @@ export default class GameScene extends Phaser.Scene {
     const prev = this._substateHistory.pop();
     if (prev) {
       this.currentSubstate = null; // Reset to allow switch
-      this.switchSubstate(prev);
+      this.switchSubstateForced(prev);
     }
+  }
+
+  lockInteraction() {
+    this._interactionLockCount++;
+  }
+
+  unlockInteraction() {
+    this._interactionLockCount = Math.max(0, this._interactionLockCount - 1);
+  }
+
+  // Force a substate switch regardless of interaction lock (for internal system use)
+  switchSubstateForced(name) {
+    const saved = this._interactionLockCount;
+    this._interactionLockCount = 0;
+    this.switchSubstate(name);
+    this._interactionLockCount = saved;
   }
 
   // --- Battle Overlay (stub) ---
@@ -174,11 +197,13 @@ export default class GameScene extends Phaser.Scene {
     const def = EVENT_TYPES[eventType];
     this._battleTypeText.setText(def ? def.label : eventType);
     this.containers.battle.setVisible(true);
+    this.lockInteraction();
   }
 
   hideBattleOverlay() {
     this.containers.battle.setVisible(false);
     this._onBattleEnd = null;
+    this.unlockInteraction();
   }
 
   // --- CardPick / Shop Modal ---
@@ -218,6 +243,8 @@ export default class GameScene extends Phaser.Scene {
     const totalW = cardW * 3 + gap * 2;
     const startX = (width - totalW) / 2 + cardW / 2;
 
+    const shopItems = [];
+
     items.forEach((item, i) => {
       const x = startX + i * (cardW + gap);
       const y = height / 2;
@@ -236,21 +263,31 @@ export default class GameScene extends Phaser.Scene {
       const buyBtn = this.add.text(x, y + 50, '購買', {
         fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif',
         backgroundColor: '#27ae60', padding: { x: 12, y: 4 }
-      }).setOrigin(0.5);
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-      const canBuy = this.gameState.gold >= item.price;
-      if (canBuy) {
-        buyBtn.setInteractive({ useHandCursor: true });
-        buyBtn.on('pointerdown', () => {
-          this.gameState.gold -= item.price;
-          const starRating = 1 + Math.floor(Math.random() * 2); // 1-2 for shop
-          this.gameState.hand.push({ type: item.type, id: item.id, starRating });
-          buyBtn.setText('已購買').setAlpha(0.5).disableInteractive();
-          bg.setStrokeStyle(2, 0x555555);
-          this.topHUD.update();
+      shopItems.push({ buyBtn, bg, item });
+
+      buyBtn.on('pointerdown', () => {
+        if (this.gameState.gold < item.price) return;
+        this.gameState.gold -= item.price;
+        const starRating = 1 + Math.floor(Math.random() * 2); // 1-2 for shop
+        this.gameState.hand.push({ type: item.type, id: item.id, starRating });
+        buyBtn.setText('已購買').setAlpha(0.5).disableInteractive();
+        bg.setStrokeStyle(2, 0x555555);
+        this.topHUD.update();
+        // Refresh remaining buttons to reflect updated gold
+        shopItems.forEach(si => {
+          if (si.buyBtn !== buyBtn && si.buyBtn.input?.enabled !== false) {
+            const canStillBuy = this.gameState.gold >= si.item.price;
+            si.buyBtn.setAlpha(canStillBuy ? 1 : 0.4);
+            if (!canStillBuy) si.buyBtn.disableInteractive();
+          }
         });
-      } else {
-        buyBtn.setAlpha(0.4);
+      });
+
+      // Set initial alpha based on affordability
+      if (this.gameState.gold < item.price) {
+        buyBtn.setAlpha(0.4).disableInteractive();
       }
 
       container.add([bg, nameText, priceText, buyBtn]);
@@ -296,6 +333,7 @@ export default class GameScene extends Phaser.Scene {
       }).setOrigin(0.5);
 
       hitZone.on('pointerdown', () => {
+        if (this._interactionLockCount > 0) return;
         this.switchSubstate(key);
       });
 

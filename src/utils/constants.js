@@ -16,6 +16,17 @@ export const STAR_WEIGHTS = [
   { star: 3, weight: 5 },
 ];
 
+// Shared star rating roll using STAR_WEIGHTS
+export function rollStarRating() {
+  const totalWeight = STAR_WEIGHTS.reduce((a, b) => a + b.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const { star, weight } of STAR_WEIGHTS) {
+    roll -= weight;
+    if (roll <= 0) return star;
+  }
+  return 1;
+}
+
 // Card dimensions
 export const CARD_WIDTH = 90;
 export const CARD_HEIGHT = 120;
