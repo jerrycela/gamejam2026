@@ -3,7 +3,7 @@
 
 import Phaser from 'phaser';
 import HeroInstance from './HeroInstance.js';
-import { TORTURE_CONFIG } from '../utils/constants.js';
+import { TORTURE_CONFIG, FINAL_BATTLE_CONFIG } from '../utils/constants.js';
 
 export const MOVE_DURATION = 400; // ms per cell transition
 
@@ -53,6 +53,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     this._bossContext = null;
     this._preKillCount = this._gameState.killCount;
     this._preGold = this._gameState.gold;
+    this.lastResult = null;
     this._active = true;
     this.emit('battleStart', { eventType, heroCount: this._heroes.length });
   }
@@ -372,6 +373,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
   // --- Battle end ---
 
   _endBattle(result) {
+    this.lastResult = result;
     this._active = false;
     this._restoreMonsters();
     this._combatContexts.clear();
@@ -491,6 +493,11 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
   // --- Hero generation ---
 
   _generateHeroes(eventType) {
+    // Final battle: legendary hero + scaled followers
+    if (eventType === 'finalBattle') {
+      return this._generateFinalBattleHeroes();
+    }
+
     const countRange = { normalBattle: [1, 3], eliteBattle: [2, 4], bossBattle: [3, 5] };
     const [min, max] = countRange[eventType];
     const count = min + Math.floor(Math.random() * (max - min + 1));
@@ -522,6 +529,49 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     }
 
     // Glamour scaling: HP and ATK only
+    const glamourMult = 1 + this._gameState.glamour / 500;
+    for (const h of heroes) {
+      h.maxHp = Math.round(h.maxHp * glamourMult);
+      h.hp = h.maxHp;
+      h.atk = Math.round(h.atk * glamourMult);
+    }
+
+    return heroes;
+  }
+
+  _generateFinalBattleHeroes() {
+    const day = this._gameState.day;
+    const configDay = Math.min(day, 7);
+    const config = FINAL_BATTLE_CONFIG[configDay] || FINAL_BATTLE_CONFIG[7];
+
+    const heroes = [];
+
+    // 1. Legendary hero (no stat scaling — fixed stats from data)
+    heroes.push(new HeroInstance('hero_of_legend', 0, this._dataManager));
+
+    // 2. Followers: weighted random from boss pool, stats scaled
+    const fullPool = ['trainee_swordsman', 'light_archer', 'priest', 'fire_mage', 'holy_knight'];
+    for (let i = 0; i < config.followerCount; i++) {
+      const weighted = fullPool.map(id => {
+        const def = this._dataManager.getHero(id);
+        return { id, weight: (def && def.spawnWeight) ? (def.spawnWeight.boss || 1) : 1 };
+      }).filter(w => w.weight > 0);
+      const totalWeight = weighted.reduce((sum, w) => sum + w.weight, 0);
+      let roll = Math.random() * totalWeight;
+      let typeId = weighted[0].id;
+      for (const w of weighted) {
+        roll -= w.weight;
+        if (roll <= 0) { typeId = w.id; break; }
+      }
+      const hero = new HeroInstance(typeId, heroes.length, this._dataManager);
+      // Apply stat multiplier
+      hero.maxHp = Math.round(hero.maxHp * config.statMultiplier);
+      hero.hp = hero.maxHp;
+      hero.atk = Math.round(hero.atk * config.statMultiplier);
+      heroes.push(hero);
+    }
+
+    // Glamour scaling (same as normal battles)
     const glamourMult = 1 + this._gameState.glamour / 500;
     for (const h of heroes) {
       h.maxHp = Math.round(h.maxHp * glamourMult);
