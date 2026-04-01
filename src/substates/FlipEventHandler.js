@@ -15,6 +15,9 @@ export default class FlipEventHandler {
       case 'bossBattle':
         this._handleBattle(flipCard, unlockCallback);
         break;
+      case 'finalBattle':
+        this._handleFinalBattle(flipCard, unlockCallback);
+        break;
       case 'activity':
         this._handleActivity(flipCard, unlockCallback);
         break;
@@ -55,6 +58,42 @@ export default class FlipEventHandler {
         }
       };
     });
+  }
+
+  _handleFinalBattle(flipCard, unlockCallback) {
+    this.gameState.finalBattleTriggered = true;
+    this._showToast('勇者來襲！終局決戰！', 1500, () => {
+      this.gameScene.switchSubstateForced('dungeonMap');
+      this.gameScene.showBattleOverlay('finalBattle');
+      this.gameScene.battleManager.start('finalBattle');
+      this.gameScene.battleUI.start();
+
+      this.scene.events.once('battleUiComplete', () => {
+        this.gameScene.battleUI.stop();
+        this.gameScene.hideBattleOverlay();
+        this._endRun(this.gameScene.battleManager.lastResult);
+      });
+
+      this.gameScene._onBattleEnd = () => {
+        if (this.gameScene.battleManager.isActive()) {
+          this.gameScene.battleManager.forceEnd('defenseSuccess');
+        }
+      };
+    });
+  }
+
+  _endRun(result) {
+    const victory = (result === 'defenseSuccess');
+    const data = {
+      victory,
+      stats: {
+        killCount: this.gameState.killCount,
+        gold: this.gameState.gold,
+        day: this.gameState.day,
+        monstersOwned: this.gameState.monsterRoster.length,
+      }
+    };
+    this.scene.scene.start('ResultScene', data);
   }
 
   _handleActivity(flipCard, unlockCallback) {
@@ -114,17 +153,21 @@ export default class FlipEventHandler {
     if (this.gameState.isMatrixComplete()) {
       this._showToast('本日結束', 2000, () => {
         this.gameState.advanceDay();
-        // Notify FlipMatrixUI to rebuild
         if (this.gameScene.flipMatrixUI) {
           this.gameScene.flipMatrixUI.rebuild();
         }
-        // Update HUD
         if (this.gameScene.topHUD) {
           this.gameScene.topHUD.update();
         }
         unlockCallback();
       });
     } else {
+      // Check if only the finalBattle card remains unresolved
+      const unresolved = this.gameState.flipMatrix.flat().filter(c => !c.resolved);
+      if (unresolved.length === 1 && unresolved[0].eventType === 'finalBattle') {
+        this._handleFinalBattle(unresolved[0], unlockCallback);
+        return;
+      }
       unlockCallback();
     }
   }
