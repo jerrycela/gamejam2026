@@ -3,6 +3,7 @@
 
 import Phaser from 'phaser';
 import HeroInstance from './HeroInstance.js';
+import { TORTURE_CONFIG } from '../utils/constants.js';
 
 export const MOVE_DURATION = 400; // ms per cell transition
 
@@ -350,14 +351,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     // Advance torture progress
     const completed = this._gameState.advanceTortureProgress();
     for (const { slot, prisoner } of completed) {
-      const conversionMap = {
-        trainee_swordsman: 'goblin',
-        light_archer: 'bat_succubus',
-        priest: 'frost_witch',
-        fire_mage: 'rage_demon',
-        holy_knight: 'skeleton_knight',
-      };
-      const monsterTypeId = conversionMap[prisoner.heroTypeId] || 'goblin';
+      const monsterTypeId = TORTURE_CONFIG.conversionMap[prisoner.heroTypeId] || 'goblin';
       this._gameState.createConvertedMonster(monsterTypeId);
       slot.prisoner = null;
       slot.progress = 0;

@@ -4,6 +4,7 @@
 
 import FlipMatrixGenerator from './FlipMatrixGenerator.js';
 import GridTopologyGenerator from './GridTopologyGenerator.js';
+import { TORTURE_CONFIG } from '../utils/constants.js';
 
 export default class GameState {
   /**
@@ -269,6 +270,35 @@ export default class GameState {
    */
   addPrisoner(heroTypeId, heroName) {
     this.prisoners.push({ heroTypeId, heroName, capturedDay: this.day });
+  }
+
+  unlockTortureSlot(slotIndex) {
+    const slot = this.tortureSlots[slotIndex];
+    if (!slot || slot.unlocked || this.gold < slot.cost) return false;
+    this.gold -= slot.cost;
+    this.tortureSlots[slotIndex] = { unlocked: true, prisoner: null, progress: 0, target: 0 };
+    return true;
+  }
+
+  assignPrisoner(slotIndex, prisoner) {
+    const slot = this.tortureSlots[slotIndex];
+    if (!slot || !slot.unlocked || slot.prisoner) return false;
+    const idx = this.prisoners.indexOf(prisoner);
+    if (idx === -1) return false;
+    slot.prisoner = prisoner;
+    slot.target = TORTURE_CONFIG.targets[prisoner.heroTypeId] || 3;
+    slot.progress = 0;
+    this.prisoners.splice(idx, 1);
+    return true;
+  }
+
+  extractPrisoner(prisoner) {
+    const idx = this.prisoners.indexOf(prisoner);
+    if (idx === -1) return 0;
+    const gold = TORTURE_CONFIG.extractGold[prisoner.heroTypeId] || 50;
+    this.gold += gold;
+    this.prisoners.splice(idx, 1);
+    return gold;
   }
 
   advanceDay() {

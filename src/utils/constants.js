@@ -37,3 +37,10 @@ export const MATRIX_COLS = 3;
 // UI dimensions
 export const TOP_HUD_HEIGHT = 48;
 export const TAB_BAR_HEIGHT = 56;
+
+// Torture chamber configuration (single source of truth)
+export const TORTURE_CONFIG = {
+  targets: { trainee_swordsman: 3, light_archer: 4, priest: 5, fire_mage: 5, holy_knight: 6 },
+  extractGold: { trainee_swordsman: 50, light_archer: 75, priest: 100, fire_mage: 100, holy_knight: 125 },
+  conversionMap: { trainee_swordsman: 'goblin', light_archer: 'bat_succubus', priest: 'frost_witch', fire_mage: 'rage_demon', holy_knight: 'skeleton_knight' },
+};

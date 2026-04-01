@@ -7,6 +7,7 @@ import TopHUD from '../substates/TopHUD.js';
 import DungeonMapUI from '../substates/DungeonMapUI.js';
 import BattleManager from '../models/BattleManager.js';
 import BattleUI from '../substates/BattleUI.js';
+import TortureUI from '../substates/TortureUI.js';
 import { EVENT_TYPES } from '../utils/constants.js';
 
 // Substate keys
@@ -55,7 +56,7 @@ export default class GameScene extends Phaser.Scene {
       const container = this.add.container(0, 0);
 
       // Skip placeholder for substates with dedicated UI classes
-      if (key !== 'flipMatrix' && key !== 'dungeonMap') {
+      if (key !== 'flipMatrix' && key !== 'dungeonMap' && key !== 'torture') {
         const bg = this.add.rectangle(width / 2, contentH / 2, width, contentH, 0x1a1a2e);
         const label = this.add.text(width / 2, contentH / 2, key, {
           fontSize: '24px', color: '#555577', fontFamily: 'monospace',
@@ -84,6 +85,13 @@ export default class GameScene extends Phaser.Scene {
 
     // --- Build Battle UI ---
     this.battleUI = new BattleUI(this, this.battleManager, this.gameState, this.dungeonMapUI);
+
+    // --- Build Torture UI ---
+    this.tortureUI = new TortureUI(this, this.gameState);
+    this.containers.torture.add(this.tortureUI.getContainer());
+
+    this.battleManager.on('tortureConversion', (data) => this.tortureUI.onConversion(data));
+    this.battleManager.on('battleEnd', () => this.tortureUI.onBattleEnd());
 
     // --- Build Event Handler ---
     this.flipEventHandler = new FlipEventHandler(this, this.gameState, this);
@@ -155,6 +163,11 @@ export default class GameScene extends Phaser.Scene {
     // Refresh DungeonMapUI hand area when switching to dungeonMap
     if (name === 'dungeonMap' && this.dungeonMapUI) {
       this.dungeonMapUI.refresh();
+    }
+
+    if (name === 'torture' && this.tortureUI) {
+      this.tortureUI.rebuild();
+      this.tortureUI.onShown();
     }
   }
 
