@@ -110,8 +110,10 @@ Gold is always granted regardless of capture outcome.
 WHEN battle is active, the following SHALL be displayed over the dungeon map:
 - Hero info bar (top): portrait, name, HP bar
 - Damage popups: float up from cells (red for damage, blue for ice, green for poison)
-- Boss skill button (bottom): with CD indicator
+- Boss skill button (bottom): with CD indicator (A2 — deferred from A1 MVP)
 - Speed controls: [x1] [x2] [Skip]
+
+**A1 MVP scope**: Hero circles with HP bars on map, damage popups (red only), speed controls. Boss skill button and color-coded damage types deferred to A2.
 
 ---
 
