@@ -1,7 +1,7 @@
 ---
 baseline_date: "2026-04-01"
 last_modified: "2026-04-01"
-version: "1.0"
+version: "1.1"
 ---
 
 # Meta — Meta-Progression & localStorage
@@ -19,16 +19,31 @@ THEN the following SHALL be available:
 - Monsters: skeleton_knight, goblin (2 of 5)
 - Rooms: dungeon, training (2 of 5)
 - Traps: arrow, boulder (2 of 5)
-- Torture slots: 2
 - Boss level: 1
 
-#### Scenario: Unlock progression
+Note: Torture slots are per-run (always start with 2 open, 2 locked). They are NOT meta-progression.
 
-WHEN a run ends
-THEN new unlocks SHALL be granted based on:
-- Runs completed: unlock milestones at run 2, 4, 6, 8, 10
-- Boss level: certain monsters/rooms require minimum boss level
-- Bestiary entries: encountering a hero type unlocks related content
+#### Scenario: Unlock matrix
+
+The following unlock conditions SHALL be used:
+
+| ID | Type | Unlock Condition |
+|----|------|------------------|
+| skeleton_knight | monster | Initial |
+| goblin | monster | Initial |
+| bat_succubus | monster | Complete run 2 |
+| rage_demon | monster | Complete run 4 |
+| frost_witch | monster | Complete run 6 |
+| dungeon | room | Initial |
+| training | room | Initial |
+| hatchery | room | Complete run 3 |
+| lab | room | Complete run 5 |
+| treasury | room | Boss level >= 3 |
+| arrow | trap | Initial |
+| boulder | trap | Initial |
+| frost | trap | Complete run 2 |
+| fire | trap | Complete run 4 |
+| poison | trap | Boss level >= 2 |
 
 ---
 
@@ -54,7 +69,7 @@ Glamour SHALL be a derived stat that affects incoming hero strength.
 WHEN the dungeon state changes (room built/upgraded)
 THEN glamour SHALL be recalculated as:
 - Sum of all room levels * room glamour value
-- Each room type has a base glamour value (e.g., treasury = 5, hatchery = 2)
+- Room glamour values: treasury = 5, hatchery = 3, lab = 3, training = 2, dungeon = 2
 
 #### Scenario: Glamour effect on hero generation
 
@@ -86,6 +101,18 @@ The localStorage key `dungeon_lord_meta` SHALL store a JSON object:
   }
 }
 ```
+
+#### Scenario: Default seed values
+
+WHEN no localStorage data exists
+THEN MetaState SHALL initialize with:
+- `version`: 1
+- `bossLevel`: 1
+- `totalRuns`: 0
+- `unlockedMonsters`: ["skeleton_knight", "goblin"]
+- `unlockedRooms`: ["dungeon", "training"]
+- `unlockedTraps`: ["arrow", "boulder"]
+- `bestiary`: { heroes: {}, monsters: {} }
 
 #### Scenario: Data migration
 

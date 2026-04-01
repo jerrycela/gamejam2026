@@ -6,7 +6,8 @@ date: "2026-04-01"
 specs_affected:
   - core
   - units
-risk: low
+  - meta
+risk: medium
 ---
 
 # Proposal 001: Initial Project Setup
@@ -56,11 +57,12 @@ new: src/data/drawCosts.json
 
 ## Verification
 
-- `npm run dev` 啟動後，瀏覽器顯示 375x812 黑色畫布 + BootScene loading 文字
+- `npm run dev` 啟動後，瀏覽器顯示 375x812 畫布（Phaser.Scale.FIT + CENTER_BOTH）
 - DataManager 能載入 5 個 JSON 並 console.log 輸出
-- MetaState 能寫入/讀取 localStorage
-- GameState 能初始化完整的 run state
+- MetaState 能寫入/讀取 localStorage（含 default seed 和 version migration）
+- GameState 能初始化完整的 run state（含 GridCell schema 驗證）
+- 在手機模擬器中確認 viewport 縮放正確
 
 ## Risk
 
-Low — 純新增，無既有程式碼受影響。
+Medium — 此 proposal 定義了全專案的 state contract、scene 邊界、存檔格式。viewport 設定和 input arbitration（pan vs tap）是主要技術風險。

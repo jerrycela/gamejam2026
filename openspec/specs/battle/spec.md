@@ -1,7 +1,7 @@
 ---
 baseline_date: "2026-04-01"
 last_modified: "2026-04-01"
-version: "1.0"
+version: "1.1"
 ---
 
 # Battle — Defense Phase (Auto-Battle)
@@ -82,16 +82,24 @@ AND during cooldown, the button SHALL appear grayed out
 
 ---
 
-### Requirement: Capture Mechanic
+### Requirement: Hero Defeat Event Sequence
 
-Defeated heroes have a chance to be captured.
+When a hero's HP reaches 0, a strict event sequence SHALL execute.
 
-#### Scenario: Capture roll
+#### Scenario: Defeat event pipeline
 
 WHEN a hero's HP reaches 0
-THEN a 20% random roll SHALL determine if the hero is captured
-IF captured: hero is added to GameState.prisoners, "Captured!" text appears (gold)
-IF not captured: hero simply disappears, gold reward granted
+THEN the following sequence SHALL execute in order:
+1. **Kill count**: increment GameState kill counter
+2. **Gold reward**: grant gold based on hero type and strength
+3. **Torture progress**: advance ALL occupied torture slots by 1
+4. **Capture roll**: 20% random chance to capture
+   - IF captured: hero added to GameState.prisoners, "Captured!" gold text popup
+   - IF not captured: hero disappears (no additional effect)
+5. **Conversion check**: if any torture slot progress reached target, trigger conversion
+
+A captured hero is ALSO counted as a kill (steps 1-3 still apply).
+Gold is always granted regardless of capture outcome.
 
 ---
 

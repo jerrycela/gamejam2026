@@ -1,7 +1,7 @@
 ---
 baseline_date: "2026-04-01"
 last_modified: "2026-04-01"
-version: "1.0"
+version: "1.1"
 ---
 
 # Map — Dungeon Map (Scrollable Grid)
@@ -12,14 +12,33 @@ version: "1.0"
 
 The dungeon map SHALL be displayed as a scrollable canvas larger than the viewport, rendered on a parchment-textured background.
 
-#### Scenario: Map viewport
+#### Scenario: Map viewport and scaling
 
-GIVEN a phone screen of 375x812px
-WHEN the DungeonMapScene is active
-THEN the map canvas SHALL be at least 600x900px
-AND the player SHALL be able to drag/pan the map with touch gestures
-AND the map SHALL have inertia-based momentum scrolling
-AND the HUD (top) and bottom bar SHALL remain fixed over the map
+GIVEN a logical game resolution of 375x812px
+WHEN the DungeonMap substate is active
+THEN the following SHALL apply:
+
+**Phaser Scale Config:**
+- `mode: Phaser.Scale.FIT`
+- `autoCenter: Phaser.Scale.CENTER_BOTH`
+- Logical resolution 375x812, scaled to fit actual device
+
+**Map World:**
+- Map canvas SHALL be at least 375x1200px (taller than viewport for vertical scrolling)
+- Use `this.cameras.main.setBounds(0, 0, mapWidth, mapHeight)` for scroll bounds
+- HUD (top, ~48px) and bottom bar (~120px = 64px hand + 56px actions) are fixed UI layers, NOT part of the scrollable world
+- Effective visible map area: ~375x644px viewport into a 375x1200+ world
+
+**Touch Input Arbitration:**
+- Pointer move > 8px from start position → treat as pan (camera scroll)
+- Pointer move <= 8px and released → treat as tap (cell interaction)
+- Pan SHALL use camera.scrollX/scrollY updates, NOT container position changes
+- Pan SHALL have inertia-based momentum (deceleration over ~300ms)
+
+**Performance:**
+- Map background (parchment texture) and path lines SHALL be pre-rendered to a static RenderTexture
+- Only cell contents (rune icons, monster sprites) are live game objects
+- Avoid per-frame recalculation of all object positions
 
 ---
 
@@ -31,12 +50,22 @@ Each run SHALL generate a random grid topology connecting the hero portal(s) to 
 
 WHEN a new run generates a dungeon grid
 THEN the grid SHALL have:
-- 1-2 hero portals at the top
+- 1 hero portal at the top (MVP; 2-portal maps are post-MVP)
 - 1 dungeon heart (boss room) at the bottom
 - 9-12 placeable cells between portal and heart
-- At least one complete path from every portal to the heart
+- At least one complete path from portal to heart
 - Cells connected by directed edges (top-to-bottom flow)
-- Each cell stores: `{ id, position: {x, y}, room: null, trap: null, monster: null, connections: [cellId...] }`
+- Each cell uses the GridCell schema defined in core/spec.md
+
+#### Scenario: Hero pathfinding at branches
+
+WHEN a hero reaches a cell with multiple outgoing connections
+THEN the hero SHALL take the connection leading to the cell closest to the dungeon heart (greedy shortest-path)
+AND if equidistant, choose randomly
+
+#### Scenario: Cell occupancy during battle
+
+Multiple heroes MAY occupy the same cell simultaneously. Combat resolves in arrival order (FIFO queue).
 
 ---
 
@@ -57,19 +86,28 @@ Each grid cell SHALL visually indicate its current state.
 
 ---
 
-### Requirement: Cell Interaction
+### Requirement: Card/Monster Placement (Unified Flow)
 
-Players SHALL be able to tap cells to view details and place cards/monsters.
+Placement SHALL follow a consistent "select first, then place" pattern.
 
-#### Scenario: Tap empty cell
+#### Scenario: Place a card from hand
 
-WHEN a player taps an empty cell
-AND the player has cards in hand
-THEN a card placement UI SHALL appear allowing selection from hand
+1. Player taps a card in the hand area → card highlights (gold border)
+2. Player taps a valid cell on the map → card is placed on the cell
+3. If cell already has the same card type → upgrade (level +1)
+4. If cell has a different card type in the same layer → prompt replace confirmation
+5. Tap anywhere else or tap the highlighted card again → deselect
 
-#### Scenario: Tap occupied cell
+#### Scenario: Place a monster
 
-WHEN a player taps an occupied cell
+1. Player opens monster list (via bottom tab or button)
+2. Player taps a monster → monster highlights
+3. Player taps a valid empty-monster cell → monster placed
+4. If cell already has a monster → prompt swap confirmation
+
+#### Scenario: Tap cell without selection
+
+WHEN a player taps a cell without any card/monster selected
 THEN a detail popup SHALL show room info, trap info, monster info, and synergy bonus
 AND offer actions: [Upgrade] [Replace] [Remove Monster]
 
@@ -83,9 +121,10 @@ Connections between cells SHALL be visually rendered as chain-link paths.
 
 WHEN the map is displayed
 THEN each connection between cells SHALL be drawn as:
-- SVG line segments (stroke: brown, 3px, 50% opacity)
+- Line segments (stroke: brown #8B4513, 3px, 50% opacity)
 - Small circle decorations along the line (simulating chain links)
-- Direction indicator (subtle arrow or flow from top to bottom)
+- Direction indicator (subtle arrow or darker endpoint near the downstream cell)
+- Paths SHALL be pre-rendered to the static background texture
 
 ---
 
@@ -97,5 +136,6 @@ A fixed hand area SHALL display the player's current cards below the map.
 
 WHEN the player has cards in hand
 THEN the hand area SHALL show card thumbnails (48x48px) in a horizontally scrollable strip
-AND tapping a hand card SHALL highlight it for placement
-AND the hand area height SHALL be 64px, fixed above the bottom bar
+AND tapping a hand card SHALL highlight it for placement (gold border glow)
+AND the hand area height SHALL be 64px, fixed above the bottom action bar
+AND the hand area SHALL NOT scroll with the map (fixed UI layer)

@@ -1,7 +1,7 @@
 ---
 baseline_date: "2026-04-01"
 last_modified: "2026-04-01"
-version: "1.0"
+version: "1.1"
 ---
 
 # Torture — Torture Chamber (Pikmin Bloom Planter UI)
@@ -31,7 +31,8 @@ Slots SHALL be unlockable by spending resources.
 
 WHEN a new run begins
 THEN 2 slots SHALL be unlocked (empty)
-AND remaining slots SHALL be locked with escalating unlock costs
+AND remaining slots SHALL be locked with escalating unlock costs (500, 1000 gold)
+AND slot unlocks are **per-run only** (reset each new run, NOT meta-progression)
 
 #### Scenario: Unlock a slot
 
@@ -76,21 +77,28 @@ AND the progress bar SHALL update visually
 
 WHEN a torture slot's progress reaches its target
 THEN a conversion animation SHALL play (color shift bright→dark, flash)
-AND the hero SHALL transform into an evil-aligned monster
-AND the new monster SHALL be added to the player's available monster pool
+AND the conversion SHALL unlock one of the existing base monsters (from the 5 defined in units/spec.md)
+AND the unlocked monster SHALL be added to the player's available monster pool for the current run
 AND the torture slot SHALL become empty (available for reuse)
 
 ---
 
-### Requirement: Converted Monster Properties
+### Requirement: Conversion Reward Mapping (MVP)
 
-Converted heroes SHALL retain partial hero abilities.
+Conversion SHALL map hero types to existing base monsters, NOT create dynamic new monsters.
 
-#### Scenario: Monster from converted hero
+#### Scenario: Hero-to-monster mapping
 
-WHEN a hero completes conversion
-THEN the resulting monster SHALL have:
-- Base stats derived from the original hero (60% of hero stats)
-- One skill inherited from the hero's skillset
-- A visual that is the hero's sprite with darkened/corrupted color palette
-- A "Converted" tag in the bestiary
+| Captured Hero | Unlocks Monster | Reasoning |
+|---------------|-----------------|-----------|
+| 見習劍士 | 地精 | Melee → melee |
+| 光弓獵手 | 蝙蝠魅魔 | Ranged → flying ranged |
+| 神官 | 冰霜女巫 | Support/magic → mage |
+| 火焰法師 | 暴躁惡魔 | Fire magic → fire melee |
+| 聖騎士 | 骷髏劍士 | Holy tank → undead tank |
+
+Additionally, the converted monster SHALL receive a **one-time stat buff** for the current run:
+- +15% HP and ATK over base stats
+- Marked as "Converted" in UI (darkened sprite tint)
+
+Note: This is an MVP simplification. Future versions may support dynamic monster generation with inherited hero skills.

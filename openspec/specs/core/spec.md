@@ -1,7 +1,7 @@
 ---
 baseline_date: "2026-04-01"
 last_modified: "2026-04-01"
-version: "1.0"
+version: "1.1"
 ---
 
 # Core — Game State & Data Models
@@ -24,9 +24,31 @@ THEN GameState SHALL be initialized with:
 - `hand`: [] (card hand)
 - `prisoners`: [] (captured heroes)
 - `monsters`: [initial monster pool based on unlocks]
-- `dungeonGrid`: null (generated per-run)
-- `flipMatrix`: null (generated per-run)
-- `tortureSlots`: [{unlocked: true, prisoner: null, progress: 0}, {unlocked: true, prisoner: null, progress: 0}, {unlocked: false, cost: 500}, {unlocked: false, cost: 1000}]
+- `dungeonGrid`: GridCell[] (generated per-run, see GridCell schema below)
+- `flipMatrix`: FlipCard[][] (generated per-run, 3x5 matrix)
+- `tortureSlots`: [{unlocked: true, prisoner: null, progress: 0, target: 0}, {unlocked: true, prisoner: null, progress: 0, target: 0}, {unlocked: false, cost: 500}, {unlocked: false, cost: 1000}]
+  - Note: torture slots are **per-run** (reset each run). Unlocking extra slots is a single-run gold investment, NOT meta-progression.
+
+---
+
+### Requirement: GridCell Schema
+
+Each cell in the dungeon grid SHALL use the following data structure:
+
+```json
+{
+  "id": "cell_01",
+  "position": { "x": 150, "y": 275 },
+  "connections": ["cell_02", "cell_03"],
+  "room": { "typeId": "hatchery", "level": 1 } | null,
+  "trap": { "typeId": "fire", "level": 1 } | null,
+  "monster": { "instanceId": "m_001", "typeId": "rage_demon", "currentHp": 120 } | null
+}
+```
+
+- `room` and `trap` are independent layers; both can coexist on one cell
+- `monster` is at most 1 per cell
+- `connections` is a directed list (top-to-bottom flow toward dungeon heart)
 - `drawCount`: 0 (tracks card draw cost escalation)
 - `drawCosts`: [0, 50, 100, 150, 250, 350, 500]
 
@@ -94,13 +116,34 @@ The game SHALL use Phaser scenes to separate major UI screens.
 #### Scenario: Scene list
 
 The following scenes SHALL exist:
-- `BootScene`: asset loading, meta-progression load
-- `MainMenuScene`: start game, view bestiary
-- `FlipMatrixScene`: card flip matrix (main gameplay loop)
-- `DungeonMapScene`: scrollable dungeon map with grid
-- `CardPickScene`: 3-pick-1 card selection (overlay)
-- `BattleScene`: defense phase auto-battle
-- `TortureScene`: torture chamber management
-- `ResultScene`: run end summary
+- `BootScene`: asset loading, meta-progression load, main menu
+- `GameScene`: the primary gameplay scene containing all substates (see below)
+- `ResultScene`: run end summary, meta-progression display
 
-Scenes SHALL communicate via the shared GameState object and Phaser events.
+`GameScene` SHALL manage the following substates via containers/modals (NOT separate Phaser scenes):
+- **FlipMatrix** (default substate): card flip matrix, main gameplay loop
+- **DungeonMap**: scrollable dungeon map with grid, card placement
+- **CardPick**: 3-pick-1 card selection (modal overlay)
+- **Battle**: defense phase auto-battle (uses DungeonMap with battle overlay)
+- **Torture**: torture chamber management (modal/tab overlay)
+- **MonsterList**: monster roster and placement UI
+
+Substates SHALL share the same GameState object. Switching substates SHALL NOT require scene transitions, only container visibility toggling.
+
+#### Scenario: Scene-Substate flow
+
+```
+BootScene → GameScene
+  ├─ FlipMatrix (default)
+  │   ├─ tap card → process event
+  │   ├─ battle event → switch to Battle substate
+  │   └─ bottom tabs → switch to DungeonMap / Torture / MonsterList
+  ├─ DungeonMap
+  │   ├─ tap cell → show detail / place card
+  │   ├─ select hand card → tap cell to place
+  │   └─ bottom tabs → switch back
+  ├─ CardPick (modal over any substate)
+  ├─ Battle (overlay on DungeonMap)
+  └─ Torture (tab/modal)
+GameScene → ResultScene (on run end)
+```
