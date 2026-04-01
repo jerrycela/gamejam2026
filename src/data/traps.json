@@ -1,0 +1,69 @@
+[
+  {
+    "id": "arrow",
+    "name": "箭矢陷阱",
+    "effectType": "physical",
+    "baseDamage": 20,
+    "description": "觸發時射出箭矢對單一英雄造成物理傷害",
+    "levels": [
+      { "level": 1, "damageMultiplier": 1.0 },
+      { "level": 2, "damageMultiplier": 1.4 },
+      { "level": 3, "damageMultiplier": 1.8 }
+    ],
+    "spriteKey": "trap_arrow"
+  },
+  {
+    "id": "fire",
+    "name": "焚燒陷阱",
+    "effectType": "fire_aoe",
+    "baseDamage": 30,
+    "description": "觸發時噴出火焰對範圍內所有英雄造成火焰傷害",
+    "levels": [
+      { "level": 1, "damageMultiplier": 1.0 },
+      { "level": 2, "damageMultiplier": 1.4 },
+      { "level": 3, "damageMultiplier": 1.8 }
+    ],
+    "spriteKey": "trap_fire"
+  },
+  {
+    "id": "frost",
+    "name": "冰霜陷阱",
+    "effectType": "ice",
+    "baseDamage": 15,
+    "slowTurns": 3,
+    "description": "觸發時釋放冰霜氣息對英雄造成傷害並使其減速 3 回合",
+    "levels": [
+      { "level": 1, "damageMultiplier": 1.0 },
+      { "level": 2, "damageMultiplier": 1.4 },
+      { "level": 3, "damageMultiplier": 1.8 }
+    ],
+    "spriteKey": "trap_frost"
+  },
+  {
+    "id": "poison",
+    "name": "毒沼陷阱",
+    "effectType": "poison_dot",
+    "baseDamage": 5,
+    "dotTicks": 4,
+    "description": "觸發時使英雄陷入毒沼，每回合造成 5 點毒素傷害，持續 4 回合（總計 20 點）",
+    "levels": [
+      { "level": 1, "damageMultiplier": 1.0 },
+      { "level": 2, "damageMultiplier": 1.4 },
+      { "level": 3, "damageMultiplier": 1.8 }
+    ],
+    "spriteKey": "trap_poison"
+  },
+  {
+    "id": "boulder",
+    "name": "落石機關",
+    "effectType": "physical",
+    "baseDamage": 60,
+    "description": "觸發時從天花板落下巨石，對單一英雄造成極高物理傷害",
+    "levels": [
+      { "level": 1, "damageMultiplier": 1.0 },
+      { "level": 2, "damageMultiplier": 1.4 },
+      { "level": 3, "damageMultiplier": 1.8 }
+    ],
+    "spriteKey": "trap_boulder"
+  }
+]
