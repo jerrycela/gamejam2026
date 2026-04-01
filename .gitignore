@@ -1,0 +1,4 @@
+.superpowers/
+reference/*.mp4
+*.pyc
+node_modules/
