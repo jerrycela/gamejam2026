@@ -33,6 +33,9 @@ export default class GameState {
     // --- Combat stats ---
     this.killCount = 0; // total heroes slain this run
 
+    // --- Final battle ---
+    this.finalBattleTriggered = false;
+
     // --- Prisoners (captured heroes awaiting torture) ---
     /** @type {object[]} */
     this.prisoners = [];
@@ -221,7 +224,7 @@ export default class GameState {
   // --- Flip Matrix ---
 
   initFlipMatrix() {
-    this.flipMatrix = FlipMatrixGenerator.generate();
+    this.flipMatrix = FlipMatrixGenerator.generate(this.day, this.finalBattleTriggered);
   }
 
   flipCard(row, col) {
