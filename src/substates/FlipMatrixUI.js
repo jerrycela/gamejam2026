@@ -30,15 +30,24 @@ export default class FlipMatrixUI {
         const x = startX + col * (CARD_WIDTH + CARD_GAP);
         const y = startY + row * (CARD_HEIGHT + CARD_GAP);
 
+        const card = this.gameState.flipMatrix[row][col];
+        const isFaceUp = card.flipped && !card.resolved && card.eventType === 'finalBattle';
+        const eventDef = EVENT_TYPES[card.eventType];
+
         // Card background
-        const bg = this.scene.add.rectangle(x, y, CARD_WIDTH, CARD_HEIGHT, 0x2d2d4e)
-          .setStrokeStyle(1, 0x555577)
+        const bgColor = isFaceUp ? eventDef.color : 0x2d2d4e;
+        const strokeColor = isFaceUp ? 0xffffff : 0x555577;
+        const strokeWidth = isFaceUp ? 2 : 1;
+        const bg = this.scene.add.rectangle(x, y, CARD_WIDTH, CARD_HEIGHT, bgColor)
+          .setStrokeStyle(strokeWidth, strokeColor)
           .setInteractive({ useHandCursor: true });
 
-        // Face-down label
-        const label = this.scene.add.text(x, y, '?', {
-          fontSize: '28px', color: '#555577', fontFamily: 'serif'
-        }).setOrigin(0.5);
+        // Label
+        const labelText = isFaceUp ? eventDef.label : '?';
+        const labelStyle = isFaceUp
+          ? { fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif' }
+          : { fontSize: '28px', color: '#555577', fontFamily: 'serif' };
+        const label = this.scene.add.text(x, y, labelText, labelStyle).setOrigin(0.5);
 
         bg.on('pointerdown', () => this._handleTap(row, col));
 
@@ -51,6 +60,22 @@ export default class FlipMatrixUI {
 
   _handleTap(row, col) {
     if (this._isProcessing) return;
+
+    const matrixCard = this.gameState.flipMatrix[row][col];
+
+    // Special case: face-up finalBattle card (not yet resolved)
+    // Don't resolveCard here — FlipEventHandler._endRun handles run termination
+    if (matrixCard.flipped && !matrixCard.resolved && matrixCard.eventType === 'finalBattle') {
+      this._isProcessing = true;
+      if (this._onFlipCallback) {
+        this._onFlipCallback(matrixCard, () => {
+          this._isProcessing = false;
+        });
+      } else {
+        this._isProcessing = false;
+      }
+      return;
+    }
 
     const card = this.gameState.flipCard(row, col);
     if (!card) return; // already flipped
