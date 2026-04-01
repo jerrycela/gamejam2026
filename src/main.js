@@ -17,3 +17,4 @@ const config = {
 };
 
 const game = new Phaser.Game(config);
+window.__game = game; // expose for dev/testing

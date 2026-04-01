@@ -2,6 +2,8 @@
 // Holds all mutable state for a single dungeon run.
 // Recreate this object at the start of every new run — do not reuse across runs.
 
+import FlipMatrixGenerator from './FlipMatrixGenerator.js';
+
 export default class GameState {
   /**
    * @param {import('./MetaState.js').default} metaState
@@ -46,7 +48,7 @@ export default class GameState {
 
     // --- Flip matrix (populated later during map setup) ---
     /** @type {any[]} */
-    this.flipMatrix = [];
+    this.initFlipMatrix();
 
     // --- Torture chamber ---
     // 2 slots unlocked from the start; 2 more purchasable for gold
@@ -161,6 +163,39 @@ export default class GameState {
     }
     this.glamour = total;
     return total;
+  }
+
+  // --- Flip Matrix ---
+
+  initFlipMatrix() {
+    this.flipMatrix = FlipMatrixGenerator.generate();
+  }
+
+  flipCard(row, col) {
+    const card = this.flipMatrix[row]?.[col];
+    if (!card || card.flipped) return null;
+    card.flipped = true;
+    return card;
+  }
+
+  resolveCard(row, col) {
+    const card = this.flipMatrix[row]?.[col];
+    if (card) card.resolved = true;
+  }
+
+  isMatrixComplete() {
+    for (const row of this.flipMatrix) {
+      for (const card of row) {
+        if (!card.resolved) return false;
+      }
+    }
+    return true;
+  }
+
+  advanceDay() {
+    this.day++;
+    this.initFlipMatrix();
+    console.log('[GameState] Advanced to day', this.day);
   }
 }
 

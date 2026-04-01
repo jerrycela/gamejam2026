@@ -64,9 +64,10 @@ AND the player SHALL select one card to add to hand, or skip
 #### Scenario: Card pool composition
 
 The card pool SHALL contain:
-- Room cards: 5 types (孵化室, 研究室, 訓練室, 地牢, 寶藏室), weighted by rarity
-- Trap cards: 5 types (箭矢, 焚燒, 冰霜, 毒沼, 落石), weighted by rarity
-- Cards have star ratings (1-5) affecting their base stats
+- Room cards: 5 types (孵化室, 研究室, 訓練室, 地牢, 寶藏室)
+- Trap cards: 5 types (箭矢, 焚燒, 冰霜, 毒沼, 落石)
+- **MVP**: uniform random selection (no rarity weighting — JSON data lacks weight fields)
+- **MVP**: star ratings 1-3 (70%/25%/5% distribution). Post-MVP may extend to 1-5 with rarity weights.
 
 #### Scenario: Card stacking (upgrade)
 
