@@ -28,6 +28,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Initialize game state for this run
     this.gameState = new GameState(this.metaState, this.dataManager);
+    this.registry.set('gameState', this.gameState);
 
     // Build substate containers
     this.containers = {};

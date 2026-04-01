@@ -35,6 +35,8 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
+    const { width, height } = this.scale;
+
     // Initialize DataManager from cache
     this.dataManager.initialize(this);
 
@@ -47,9 +49,23 @@ export default class BootScene extends Phaser.Scene {
     this.registry.set('dataManager', this.dataManager);
     this.registry.set('metaState', this.metaState);
 
-    // Transition to GameScene after brief delay
-    this.time.delayedCall(500, () => {
+    // Clear loading UI
+    this.children.removeAll();
+
+    // Main menu
+    this.add.text(width / 2, height / 3, '魔王創業', {
+      fontSize: '48px', color: '#e74c3c', fontFamily: 'serif'
+    }).setOrigin(0.5);
+
+    const startBtn = this.add.text(width / 2, height / 2, '開始遊戲', {
+      fontSize: '24px', color: '#ffffff', fontFamily: 'sans-serif',
+      backgroundColor: '#e74c3c', padding: { x: 24, y: 12 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    startBtn.on('pointerdown', () => {
       this.scene.start('GameScene');
     });
+    startBtn.on('pointerover', () => startBtn.setAlpha(0.8));
+    startBtn.on('pointerout', () => startBtn.setAlpha(1));
   }
 }

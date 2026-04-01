@@ -35,39 +35,53 @@ export default class MetaState {
 
   /** Load from localStorage, applying migration if the saved version is older. */
   load() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      // No save found — start from defaults (already set in constructor)
-      return;
-    }
-
-    let saved;
     try {
-      saved = JSON.parse(raw);
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        // No save found — start from defaults (already set in constructor)
+        return;
+      }
+
+      let saved;
+      try {
+        saved = JSON.parse(raw);
+      } catch (e) {
+        console.warn('[MetaState] Corrupt save data, resetting.', e);
+        this.reset();
+        return;
+      }
+
+      // Migration: fill in any keys present in DEFAULT_META but absent in the saved data.
+      // We never delete existing keys so user progress is preserved.
+      if (!saved.version || saved.version < CURRENT_VERSION) {
+        saved = this._migrate(saved);
+      }
+
+      // Copy all fields from the (possibly migrated) save onto this instance
+      Object.assign(this, saved);
+
+      // Validate array fields — fall back to defaults if corrupted
+      const arrayFields = ['unlockedMonsters', 'unlockedRooms', 'unlockedTraps'];
+      for (const field of arrayFields) {
+        if (!Array.isArray(saved[field])) {
+          saved[field] = [...DEFAULT_META[field]];
+        }
+      }
+
+      // Deep-copy arrays to avoid shared references with the parsed object
+      this.unlockedMonsters = [...saved.unlockedMonsters];
+      this.unlockedRooms = [...saved.unlockedRooms];
+      this.unlockedTraps = [...saved.unlockedTraps];
+      this.bestiary = {
+        heroes: { ...(saved.bestiary?.heroes ?? {}) },
+        monsters: { ...(saved.bestiary?.monsters ?? {}) }
+      };
+
+      console.log('[MetaState] Loaded — bossLevel:', this.bossLevel, 'totalRuns:', this.totalRuns);
     } catch (e) {
-      console.warn('[MetaState] Corrupt save data, resetting.', e);
+      console.warn('[MetaState] Failed to load save data, resetting.', e);
       this.reset();
-      return;
     }
-
-    // Migration: fill in any keys present in DEFAULT_META but absent in the saved data.
-    // We never delete existing keys so user progress is preserved.
-    if (!saved.version || saved.version < CURRENT_VERSION) {
-      saved = this._migrate(saved);
-    }
-
-    // Copy all fields from the (possibly migrated) save onto this instance
-    Object.assign(this, saved);
-    // Deep-copy arrays to avoid shared references with the parsed object
-    this.unlockedMonsters = [...saved.unlockedMonsters];
-    this.unlockedRooms = [...saved.unlockedRooms];
-    this.unlockedTraps = [...saved.unlockedTraps];
-    this.bestiary = {
-      heroes: { ...(saved.bestiary?.heroes ?? {}) },
-      monsters: { ...(saved.bestiary?.monsters ?? {}) }
-    };
-
-    console.log('[MetaState] Loaded — bossLevel:', this.bossLevel, 'totalRuns:', this.totalRuns);
   }
 
   /** Persist current in-memory state to localStorage. */

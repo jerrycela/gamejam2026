@@ -67,7 +67,7 @@
     "buffTarget": "greedy",
     "buffEffect": {
       "aoeRange": 1,
-      "damage": 1.2
+      "damageMultiplier": 1.2
     },
     "glamourValue": 5,
     "runeIcon": "rune_treasury",
