@@ -7,6 +7,7 @@ export const EVENT_TYPES = {
   activity:     { weight: 25, label: '事件',      color: 0x27ae60 },
   treasure:     { weight: 15, label: '寶藏',      color: 0xf1c40f },
   shop:         { weight: 10, label: '商店',      color: 0x2980b9 },
+  finalBattle:  { weight: 0,  label: '終局決戰',  color: 0xffd700 },
 };
 
 // Star rating weights for CardPick random generation
@@ -37,6 +38,23 @@ export const MATRIX_COLS = 3;
 // UI dimensions
 export const TOP_HUD_HEIGHT = 48;
 export const TAB_BAR_HEIGHT = 56;
+
+// Final battle card injection configuration
+export const FINAL_BATTLE_INJECTION = {
+  minDay: 3,
+  baseProb: 0.1,
+  probPerDay: 0.15,
+  maxProb: 1.0,
+};
+
+// Final battle party composition by day
+export const FINAL_BATTLE_CONFIG = {
+  3: { followerCount: 2, statMultiplier: 1.5 },
+  4: { followerCount: 2, statMultiplier: 1.75 },
+  5: { followerCount: 3, statMultiplier: 2.0 },
+  6: { followerCount: 3, statMultiplier: 2.25 },
+  7: { followerCount: 4, statMultiplier: 2.5 },
+};
 
 // Torture chamber configuration (single source of truth)
 export const TORTURE_CONFIG = {
