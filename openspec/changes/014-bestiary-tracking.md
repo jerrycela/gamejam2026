@@ -1,7 +1,7 @@
 ---
 id: "014"
 title: "Bestiary Tracking — Hero Encounter Log"
-status: proposed
+status: applied
 date: "2026-04-02"
 specs_affected:
   - meta

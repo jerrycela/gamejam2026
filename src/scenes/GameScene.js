@@ -9,14 +9,15 @@ import BattleManager from '../models/BattleManager.js';
 import BattleUI from '../substates/BattleUI.js';
 import TortureUI from '../substates/TortureUI.js';
 import MonsterListUI from '../substates/MonsterListUI.js';
+import BestiaryUI from '../substates/BestiaryUI.js';
 import { EVENT_TYPES } from '../utils/constants.js';
 import { buildUnlockedPool } from '../utils/buildUnlockedPool.js';
 
 // Substate keys
-const SUBSTATES = ['flipMatrix', 'dungeonMap', 'cardPick', 'battle', 'torture', 'monsterList'];
+const SUBSTATES = ['flipMatrix', 'dungeonMap', 'cardPick', 'battle', 'torture', 'monsterList', 'bestiary'];
 
 // Substates that participate in tab switching (cardPick and battle are modal/overlay)
-const TAB_SUBSTATES = ['flipMatrix', 'dungeonMap', 'torture', 'monsterList'];
+const TAB_SUBSTATES = ['flipMatrix', 'dungeonMap', 'torture', 'monsterList', 'bestiary'];
 
 // Tab bar entries
 const TAB_DEFS = [
@@ -24,6 +25,7 @@ const TAB_DEFS = [
   { label: '地圖', key: 'dungeonMap' },
   { label: '刑房', key: 'torture' },
   { label: '怪物', key: 'monsterList' },
+  { label: '圖鑑', key: 'bestiary' },
 ];
 
 const TAB_BAR_H = 56;
@@ -59,7 +61,7 @@ export default class GameScene extends Phaser.Scene {
       const container = this.add.container(0, 0);
 
       // Skip placeholder for substates with dedicated UI classes
-      if (key !== 'flipMatrix' && key !== 'dungeonMap' && key !== 'torture' && key !== 'monsterList') {
+      if (key !== 'flipMatrix' && key !== 'dungeonMap' && key !== 'torture' && key !== 'monsterList' && key !== 'bestiary') {
         const bg = this.add.rectangle(width / 2, contentH / 2, width, contentH, 0x1a1a2e);
         const label = this.add.text(width / 2, contentH / 2, key, {
           fontSize: '24px', color: '#555577', fontFamily: 'monospace',
@@ -99,6 +101,10 @@ export default class GameScene extends Phaser.Scene {
     // --- Build MonsterList UI ---
     this.monsterListUI = new MonsterListUI(this, this.gameState, this.dataManager);
     this.containers.monsterList.add(this.monsterListUI.getContainer());
+
+    // --- Build Bestiary UI ---
+    this.bestiaryUI = new BestiaryUI(this, this.metaState, this.gameState, this.dataManager);
+    this.containers.bestiary.add(this.bestiaryUI.getContainer());
 
     // --- Build Event Handler ---
     this.flipEventHandler = new FlipEventHandler(this, this.gameState, this);
@@ -179,6 +185,10 @@ export default class GameScene extends Phaser.Scene {
 
     if (name === 'monsterList' && this.monsterListUI) {
       this.monsterListUI.rebuild();
+    }
+
+    if (name === 'bestiary' && this.bestiaryUI) {
+      this.bestiaryUI.rebuild();
     }
   }
 

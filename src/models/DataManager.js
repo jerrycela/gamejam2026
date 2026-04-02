@@ -68,6 +68,10 @@ export default class DataManager {
     return this.unlockShop;
   }
 
+  getAllHeroes() {
+    return this.heroes;
+  }
+
   getBossConfig() {
     return this.boss;
   }
