@@ -281,13 +281,13 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     if (hero.attackTimer >= hero.attackCd * 1000) {
       hero.attackTimer = 0;
       let dmg = this._resolveAttack(hero.atk, monsterDef.baseDef);
-      // Anti-undead trait bonus
-      const holyNormal = hero.trait && hero.trait.id === 'anti_undead' && monsterDef.type && monsterDef.type.includes('undead');
-      if (holyNormal) {
-        dmg = Math.round(dmg * hero.trait.multiplier);
+      // Combat trait bonus (anti_undead, anti_flying, etc.)
+      const combatBonus = hero.combatTrait && monsterDef.type && monsterDef.type.includes(hero.combatTrait.targetType);
+      if (combatBonus) {
+        dmg = Math.round(dmg * hero.combatTrait.multiplier);
       }
       monster.currentHp -= dmg;
-      this.emit('attack', { attackerType: 'hero', attackerId: hero.instanceId, targetType: 'monster', targetId: monster.instanceId, damage: dmg, cellId: ctx.cellId, holyBonus: holyNormal || false });
+      this.emit('attack', { attackerType: 'hero', attackerId: hero.instanceId, targetType: 'monster', targetId: monster.instanceId, damage: dmg, cellId: ctx.cellId, holyBonus: combatBonus || false });
     }
 
     // Hero skill
@@ -304,13 +304,13 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
           }
         } else if (hero.skill.damage) {
           let skillDmg = hero.skill.damage;
-          // Anti-undead trait bonus
-          const holySkill = hero.trait && hero.trait.id === 'anti_undead' && monsterDef.type && monsterDef.type.includes('undead');
-          if (holySkill) {
-            skillDmg = Math.round(skillDmg * hero.trait.multiplier);
+          // Combat trait bonus (anti_undead, anti_flying, etc.)
+          const combatBonusSkill = hero.combatTrait && monsterDef.type && monsterDef.type.includes(hero.combatTrait.targetType);
+          if (combatBonusSkill) {
+            skillDmg = Math.round(skillDmg * hero.combatTrait.multiplier);
           }
           monster.currentHp -= skillDmg;
-          this.emit('attack', { attackerType: 'hero', attackerId: hero.instanceId, targetType: 'monster', targetId: monster.instanceId, damage: skillDmg, isSkill: true, cellId: ctx.cellId, holyBonus: holySkill || false });
+          this.emit('attack', { attackerType: 'hero', attackerId: hero.instanceId, targetType: 'monster', targetId: monster.instanceId, damage: skillDmg, isSkill: true, cellId: ctx.cellId, holyBonus: combatBonusSkill || false });
 
           // Check monster death after skill hit
           if (monster.currentHp <= 0) {

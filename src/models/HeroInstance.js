@@ -31,6 +31,7 @@ export default class HeroInstance {
     this.shield = 0;
     this.debuffs = [];
     this.trait = def.trait || null;
+    this.combatTrait = def.combatTrait || null;
     this.traitState = {};
     if (this.trait && this.trait.id === 'first_trap_skip') {
       this.traitState.firstTrapUsed = false;

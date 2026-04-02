@@ -40,6 +40,7 @@
     },
     "specialTrait": "遠程攻擊手，可自動跳過路徑中第一個觸發的陷阱；對飛行型怪物傷害提升 20%",
     "trait": { "id": "first_trap_skip" },
+    "combatTrait": { "id": "anti_flying", "targetType": "flying", "multiplier": 1.2 },
     "spawnWeight": {
       "normal": 4,
       "elite": 2,
@@ -64,6 +65,7 @@
     },
     "specialTrait": "隊伍治療核心，每 3 回合自動對血量最低的友方英雄施加護盾（吸收 15 點傷害）；神聖屬性使亡靈怪物受到的傷害提升 25%",
     "trait": { "id": "anti_undead", "multiplier": 1.25 },
+    "combatTrait": { "id": "anti_undead", "targetType": "undead", "multiplier": 1.25 },
     "spawnWeight": {
       "normal": 3,
       "elite": 3,
@@ -114,6 +116,7 @@
     },
     "specialTrait": "最強肉盾，能承受大量傷害並保護隊友；對亡靈型怪物具有天生剋制，攻擊造成額外 35% 神聖傷害；出現在 Boss 戰的機率極高",
     "trait": { "id": "anti_undead", "multiplier": 1.35 },
+    "combatTrait": { "id": "anti_undead", "targetType": "undead", "multiplier": 1.35 },
     "spawnWeight": {
       "normal": 0,
       "elite": 3,
