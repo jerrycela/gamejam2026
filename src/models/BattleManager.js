@@ -331,6 +331,14 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       }
     }
 
+    // Resolution: hero dead (check before burn tick to prevent dead hero continuing)
+    if (hero.hp <= 0) {
+      this._combatContexts.delete(hero.instanceId);
+      this._cellCombatOwner.delete(ctx.cellId);
+      this._heroDefeated(hero, ctx.cellId);
+      return;
+    }
+
     // Burn tick (independent 1.5s timer)
     if (ctx.burnState && ctx.burnState.ticksRemaining > 0) {
       ctx.burnState.timer += dt;
@@ -345,17 +353,12 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
           this._cellCombatOwner.delete(ctx.cellId);
           this.emit('monsterDefeated', { cellId: ctx.cellId, monsterId: monster.instanceId });
           hero.state = 'moving';
+          hero.attackTimer = 0;
+          hero.skillTimer = 0;
           this._assignNextMove(hero);
           return;
         }
       }
-    }
-
-    // Resolution: hero dead
-    if (hero.hp <= 0) {
-      this._combatContexts.delete(hero.instanceId);
-      this._cellCombatOwner.delete(ctx.cellId);
-      this._heroDefeated(hero, ctx.cellId);
     }
   }
 

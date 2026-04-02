@@ -310,12 +310,14 @@ export default class BattleUI {
 
   _onTrapParry({ hero: _hero, cellId }, session) {
     if (this._sessionId !== session) return;
+    if (this._battleManager.getSpeedMultiplier() >= 10) return;
     const pos = this._dungeonMapUI.getCellPosition(cellId);
     if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, 'Parry!', '#ffffff');
   }
 
   _onTrapSkip({ hero: _hero, cellId }, session) {
     if (this._sessionId !== session) return;
+    if (this._battleManager.getSpeedMultiplier() >= 10) return;
     const pos = this._dungeonMapUI.getCellPosition(cellId);
     if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, 'Skip!', '#00bcd4');
   }
