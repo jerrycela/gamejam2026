@@ -157,8 +157,14 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
 
     // Trap
     if (cell.trap) {
-      const damage = this._resolveTrap(hero, cell);
-      this.emit('trapTrigger', { hero, cellId: cell.id, damage });
+      const result = this._resolveTrap(hero, cell);
+      if (result.status === 'parried') {
+        this.emit('trapParry', { hero, cellId: cell.id });
+      } else if (result.status === 'skipped') {
+        this.emit('trapSkip', { hero, cellId: cell.id });
+      } else {
+        this.emit('trapTrigger', { hero, cellId: cell.id, damage: result.damage });
+      }
       if (hero.hp <= 0) {
         this._heroDefeated(hero, cell.id);
         return;
@@ -242,9 +248,14 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     hero.attackTimer += dt;
     if (hero.attackTimer >= hero.attackCd * 1000) {
       hero.attackTimer = 0;
-      const dmg = this._resolveAttack(hero.atk, monsterDef.baseDef);
+      let dmg = this._resolveAttack(hero.atk, monsterDef.baseDef);
+      // Anti-undead trait bonus
+      const holyNormal = hero.trait && hero.trait.id === 'anti_undead' && monsterDef.type && monsterDef.type.includes('undead');
+      if (holyNormal) {
+        dmg = Math.round(dmg * hero.trait.multiplier);
+      }
       monster.currentHp -= dmg;
-      this.emit('attack', { attackerType: 'hero', attackerId: hero.instanceId, targetType: 'monster', targetId: monster.instanceId, damage: dmg, cellId: ctx.cellId });
+      this.emit('attack', { attackerType: 'hero', attackerId: hero.instanceId, targetType: 'monster', targetId: monster.instanceId, damage: dmg, cellId: ctx.cellId, holyBonus: holyNormal || false });
     }
 
     // Hero skill
@@ -252,9 +263,32 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       hero.skillTimer += dt;
       if (hero.skillTimer >= hero.skill.cd * 1000) {
         hero.skillTimer = 0;
-        const dmg = hero.skill.damage;
-        monster.currentHp -= dmg;
-        this.emit('attack', { attackerType: 'hero', attackerId: hero.instanceId, targetType: 'monster', targetId: monster.instanceId, damage: dmg, isSkill: true, cellId: ctx.cellId });
+        let skillDmg = hero.skill.damage;
+        // Anti-undead trait bonus
+        const holySkill = hero.trait && hero.trait.id === 'anti_undead' && monsterDef.type && monsterDef.type.includes('undead');
+        if (holySkill) {
+          skillDmg = Math.round(skillDmg * hero.trait.multiplier);
+        }
+        monster.currentHp -= skillDmg;
+        this.emit('attack', { attackerType: 'hero', attackerId: hero.instanceId, targetType: 'monster', targetId: monster.instanceId, damage: skillDmg, isSkill: true, cellId: ctx.cellId, holyBonus: holySkill || false });
+
+        // Check monster death after skill hit
+        if (monster.currentHp <= 0) {
+          monster._battleDead = true;
+          this._combatContexts.delete(hero.instanceId);
+          this._cellCombatOwner.delete(ctx.cellId);
+          this.emit('monsterDefeated', { cellId: ctx.cellId, monsterId: monster.instanceId });
+          hero.state = 'moving';
+          hero.attackTimer = 0;
+          hero.skillTimer = 0;
+          this._assignNextMove(hero);
+          return;
+        }
+
+        // Burn on skill trait
+        if (hero.trait && hero.trait.id === 'burn_on_skill' && Math.random() < hero.trait.chance) {
+          ctx.burnState = { damage: hero.trait.damage, ticksRemaining: hero.trait.ticks, timer: 0 };
+        }
       }
     }
 
@@ -294,6 +328,26 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
         const dmg = skillDef.damage;
         hero.hp -= dmg;
         this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: hero.instanceId, damage: dmg, isSkill: true, cellId: ctx.cellId });
+      }
+    }
+
+    // Burn tick (independent 1.5s timer)
+    if (ctx.burnState && ctx.burnState.ticksRemaining > 0) {
+      ctx.burnState.timer += dt;
+      if (ctx.burnState.timer >= 1500) {
+        ctx.burnState.timer = 0;
+        ctx.burnState.ticksRemaining--;
+        monster.currentHp -= ctx.burnState.damage;
+        this.emit('burnDamage', { hero, cellId: ctx.cellId, damage: ctx.burnState.damage });
+        if (monster.currentHp <= 0) {
+          monster._battleDead = true;
+          this._combatContexts.delete(hero.instanceId);
+          this._cellCombatOwner.delete(ctx.cellId);
+          this.emit('monsterDefeated', { cellId: ctx.cellId, monsterId: monster.instanceId });
+          hero.state = 'moving';
+          this._assignNextMove(hero);
+          return;
+        }
       }
     }
 
@@ -423,9 +477,22 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
   }
 
   _resolveTrap(hero, cell) {
-    if (!cell.trap) return 0;
+    if (!cell.trap) return { damage: 0, status: 'normal' };
     const trapDef = this._dataManager.getTrap(cell.trap.typeId);
-    if (!trapDef) return 0;
+    if (!trapDef) return { damage: 0, status: 'normal' };
+
+    // Trait: trap_parry
+    if (hero.trait && hero.trait.id === 'trap_parry') {
+      if (Math.random() < hero.trait.chance) {
+        return { damage: 0, status: 'parried' };
+      }
+    }
+    // Trait: first_trap_skip
+    if (hero.trait && hero.trait.id === 'first_trap_skip' && !hero.traitState.firstTrapUsed) {
+      hero.traitState.firstTrapUsed = true;
+      return { damage: 0, status: 'skipped' };
+    }
+
     const level = cell.trap.level || 1;
     const levelEntry = trapDef.levels ? trapDef.levels.find(l => l.level === level) : null;
     const multiplier = levelEntry ? levelEntry.damageMultiplier : 1.0;
@@ -448,7 +515,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     }
     // fire_aoe: MVP — base damage to triggerer only, no additional debuff
 
-    return damage;
+    return { damage, status: 'normal' };
   }
 
   /**

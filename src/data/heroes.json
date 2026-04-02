@@ -15,6 +15,7 @@
       "description": "對單一怪物發動有力劈砍"
     },
     "specialTrait": "均衡型英雄，攻防俱佳，適合作為隊伍核心；面對陷阱時有 10% 機率格擋免傷",
+    "trait": { "id": "trap_parry", "chance": 0.1 },
     "spawnWeight": {
       "normal": 5,
       "elite": 1,
@@ -38,6 +39,7 @@
       "description": "射出穿透箭矢對單一目標造成傷害，可跳過第一個陷阱"
     },
     "specialTrait": "遠程攻擊手，可自動跳過路徑中第一個觸發的陷阱；對飛行型怪物傷害提升 20%",
+    "trait": { "id": "first_trap_skip" },
     "spawnWeight": {
       "normal": 4,
       "elite": 2,
@@ -84,6 +86,7 @@
       "description": "召喚烈焰風暴對所有怪物造成火焰傷害"
     },
     "specialTrait": "高爆發全域輸出，技能命中後有 30% 機率使目標燃燒（每回合 5 點持續傷害，持續 3 回合）；防禦極低，需要保護",
+    "trait": { "id": "burn_on_skill", "chance": 0.3, "damage": 5, "ticks": 3 },
     "spawnWeight": {
       "normal": 1,
       "elite": 4,
@@ -109,6 +112,7 @@
       "description": "為自身施加聖光護盾，防禦力提升 50% 持續 3 回合；對亡靈怪物具有額外壓制效果"
     },
     "specialTrait": "最強肉盾，能承受大量傷害並保護隊友；對亡靈型怪物具有天生剋制，攻擊造成額外 35% 神聖傷害；出現在 Boss 戰的機率極高",
+    "trait": { "id": "anti_undead", "multiplier": 1.35 },
     "spawnWeight": {
       "normal": 0,
       "elite": 3,

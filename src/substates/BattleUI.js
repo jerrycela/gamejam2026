@@ -71,6 +71,9 @@ export default class BattleUI {
     this._bind('heroDefeated',    (data) => this._onHeroDefeated(data, session));
     this._bind('battleEnd',       (data) => this._onBattleEnd(data, session));
     this._bind('dotDamage',       (data) => this._onDotDamage(data, session));
+    this._bind('trapParry',       (data) => this._onTrapParry(data, session));
+    this._bind('trapSkip',        (data) => this._onTrapSkip(data, session));
+    this._bind('burnDamage',      (data) => this._onBurnDamage(data, session));
   }
 
   update(dt) {
@@ -252,7 +255,7 @@ export default class BattleUI {
     this._dungeonMapUI.setCellHighlight(cellId, 0xff0000);
   }
 
-  _onAttack({ attackerType, targetType, targetId, damage, cellId }, session) {
+  _onAttack({ attackerType, targetType, targetId, damage, cellId, holyBonus }, session) {
     if (this._sessionId !== session) return;
     if (this._battleManager.getSpeedMultiplier() >= 10) return;
 
@@ -272,12 +275,13 @@ export default class BattleUI {
       }
     } else if (targetType === 'monster') {
       // Hero attacks monster: show popup at cell position
+      const color = holyBonus ? '#ffd700' : '#ffffff';
       const pos = this._dungeonMapUI.getCellPosition(cellId);
-      if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, damage, '#ffffff');
+      if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, damage, color);
     }
   }
 
-  _onBossHit({ hero, damage }, session) {
+  _onBossHit({ hero: _hero, damage }, session) {
     if (this._sessionId !== session) return;
     if (this._battleManager.getSpeedMultiplier() >= 10) return;
 
@@ -296,12 +300,31 @@ export default class BattleUI {
     if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, damage, '#f39c12');
   }
 
-  _onDotDamage({ hero, cellId, damage }, session) {
+  _onDotDamage({ hero: _hero, cellId, damage }, session) {
     if (this._sessionId !== session) return;
     if (this._battleManager.getSpeedMultiplier() >= 10) return;
 
     const pos = this._dungeonMapUI.getCellPosition(cellId);
     if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, damage, '#2ecc71');
+  }
+
+  _onTrapParry({ hero: _hero, cellId }, session) {
+    if (this._sessionId !== session) return;
+    const pos = this._dungeonMapUI.getCellPosition(cellId);
+    if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, 'Parry!', '#ffffff');
+  }
+
+  _onTrapSkip({ hero: _hero, cellId }, session) {
+    if (this._sessionId !== session) return;
+    const pos = this._dungeonMapUI.getCellPosition(cellId);
+    if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, 'Skip!', '#00bcd4');
+  }
+
+  _onBurnDamage({ hero: _hero, cellId, damage }, session) {
+    if (this._sessionId !== session) return;
+    if (this._battleManager.getSpeedMultiplier() >= 10) return;
+    const pos = this._dungeonMapUI.getCellPosition(cellId);
+    if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, damage, '#e67e22');
   }
 
   _onMonsterDefeated({ cellId }, session) {
@@ -428,7 +451,8 @@ export default class BattleUI {
 
   _spawnDamagePopup(x, y, damage, color) {
     const scene = this._scene;
-    const text = scene.add.text(x, y, `-${damage}`, {
+    const label = typeof damage === 'string' ? damage : `-${damage}`;
+    const text = scene.add.text(x, y, label, {
       fontSize: '14px',
       color: color || '#ffffff',
       fontFamily: 'monospace',
