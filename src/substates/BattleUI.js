@@ -74,6 +74,8 @@ export default class BattleUI {
     this._bind('trapParry',       (data) => this._onTrapParry(data, session));
     this._bind('trapSkip',        (data) => this._onTrapSkip(data, session));
     this._bind('burnDamage',      (data) => this._onBurnDamage(data, session));
+    this._bind('bossSkill',       (data) => this._onBossSkill(data, session));
+    this._bind('bossSkillEnd',    (data) => this._onBossSkillEnd(data, session));
   }
 
   update(dt) {
@@ -281,14 +283,15 @@ export default class BattleUI {
     }
   }
 
-  _onBossHit({ hero: _hero, damage }, session) {
+  _onBossHit({ hero: _hero, damage, shielded }, session) {
     if (this._sessionId !== session) return;
     if (this._battleManager.getSpeedMultiplier() >= 10) return;
 
-    // Show popup at heart cell position
+    // 護盾 active 時在數字後加標記
     const heartCell = this._gameState.dungeonGrid.find(c => c.type === 'heart');
     if (heartCell) {
-      this._spawnDamagePopup(heartCell.position.x, heartCell.position.y - 20, damage, '#9b59b6');
+      const label = shielded ? `${damage}(護盾)` : damage;
+      this._spawnDamagePopup(heartCell.position.x, heartCell.position.y - 20, label, '#9b59b6');
     }
   }
 
@@ -445,6 +448,45 @@ export default class BattleUI {
       },
     });
     this._tweens.push(fadeInTween);
+  }
+
+  _onBossSkill({ skillId, skillName }, session) {
+    if (this._sessionId !== session) return;
+    if (this._battleManager.getSpeedMultiplier() >= 10) return;
+
+    const heartCell = this._gameState.dungeonGrid.find(c => c.type === 'heart');
+    if (!heartCell) return;
+
+    // 大字技能名 popup
+    const scene = this._scene;
+    const text = scene.add.text(heartCell.position.x, heartCell.position.y - 40, skillName, {
+      fontSize: '18px',
+      color: skillId === 'shockwave' ? '#ff4444' : '#4488ff',
+      fontFamily: 'monospace',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(2000);
+    this._dungeonMapUI.getMapWorldContainer().add(text);
+    this._transients.push(text);
+
+    const tween = scene.tweens.add({
+      targets: text,
+      y: heartCell.position.y - 80,
+      alpha: 0,
+      duration: 1200,
+      ease: 'Power1',
+      onComplete: () => { text.destroy(); },
+    });
+    this._tweens.push(tween);
+
+    // 震盪波加鏡頭搖晃
+    if (skillId === 'shockwave') {
+      scene.cameras.main.shake(200, 0.005);
+    }
+  }
+
+  _onBossSkillEnd(_data, session) {
+    if (this._sessionId !== session) return;
+    // 護盾結束：未來可在此加視覺回饋
   }
 
   // ---------------------------------------------------------------------------

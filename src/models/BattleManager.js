@@ -84,8 +84,8 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       }
     }
 
-    // Boss shared attack tick (after all hero ticks)
-    this._tickBossSharedAttack(dt);
+    // Boss action tick — skills + shared attack (after all hero ticks)
+    this._tickBossAction(dt);
 
     // Check boss breached
     if (this._gameState.bossHp <= 0) {
@@ -147,7 +147,21 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     if (cell.type === 'heart') {
       hero.state = 'fighting';
       if (!this._bossContext) {
-        this._bossContext = { attackTimer: 0, targetQueue: [] };
+        const bossConfig = this._dataManager.getBossConfig();
+        const skillTimers = {};
+        for (const skill of bossConfig.skills) {
+          skillTimers[skill.id] = skill.cd * 0.5 * 1000; // 50% 起始延遲，不會一開場就放
+        }
+        const shieldSkill = bossConfig.skills.find(s => s.id === 'dark_shield');
+        this._bossContext = {
+          attackTimer: 0,
+          targetQueue: [],
+          skillTimers,
+          shieldActive: false,
+          shieldTimer: 0,
+          attackCd: bossConfig.attackCd,
+          shieldReduction: shieldSkill ? shieldSkill.damageReduction : 0,
+        };
       }
       this._bossContext.targetQueue.push(hero.instanceId);
       this._combatContexts.set(hero.instanceId, { heroId: hero.instanceId, cellId: cell.id, isBoss: true });
@@ -377,9 +391,13 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     hero.attackTimer += dt;
     if (hero.attackTimer >= hero.attackCd * 1000) {
       hero.attackTimer = 0;
-      const dmg = this._resolveAttack(hero.atk, 0); // boss has no def in MVP
+      let dmg = this._resolveAttack(hero.atk, 0); // boss has no def in MVP
+      // Shield 減傷（cached reduction from _bossContext）
+      if (this._bossContext?.shieldActive) {
+        dmg = Math.round(dmg * (1 - this._bossContext.shieldReduction));
+      }
       this._gameState.bossHp -= dmg;
-      this.emit('bossHit', { hero, damage: dmg });
+      this.emit('bossHit', { hero, damage: dmg, shielded: this._bossContext?.shieldActive || false });
     }
 
     // Hero skill vs boss
@@ -387,24 +405,81 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       hero.skillTimer += dt;
       if (hero.skillTimer >= hero.skill.cd * 1000) {
         hero.skillTimer = 0;
-        this._gameState.bossHp -= hero.skill.damage;
-        this.emit('bossHit', { hero, damage: hero.skill.damage, isSkill: true });
+        let skillDmg = hero.skill.damage;
+        // Shield 減傷（cached reduction from _bossContext）
+        if (this._bossContext?.shieldActive) {
+          skillDmg = Math.round(skillDmg * (1 - this._bossContext.shieldReduction));
+        }
+        this._gameState.bossHp -= skillDmg;
+        this.emit('bossHit', { hero, damage: skillDmg, isSkill: true, shielded: this._bossContext?.shieldActive || false });
       }
     }
 
   }
 
   /**
-   * Boss shared attack — one timer, FIFO targeting. Called once per tick after all hero fighting ticks.
+   * Boss action tick — 技能優先（shockwave > dark_shield）> 普攻，每 tick 至多一個動作。
+   * 取代原 _tickBossSharedAttack。
    */
-  _tickBossSharedAttack(dt) {
-    if (!this._bossContext || this._bossContext.targetQueue.length === 0) return;
+  _tickBossAction(dt) {
+    if (!this._bossContext) return;
     if (this._gameState.bossHp <= 0) return;
 
-    this._bossContext.attackTimer += dt;
-    if (this._bossContext.attackTimer >= 2.0 * 1000) { // boss attackCd = 2s
-      this._bossContext.attackTimer = 0;
-      const targetHeroId = this._bossContext.targetQueue[0];
+    const ctx = this._bossContext;
+    const bossConfig = this._dataManager.getBossConfig();
+
+    // 1. 更新護盾計時器（即使 targetQueue 為空也要推進，避免 timer 凍結）
+    if (ctx.shieldActive) {
+      ctx.shieldTimer -= dt;
+      if (ctx.shieldTimer <= 0) {
+        ctx.shieldActive = false;
+        ctx.shieldTimer = 0;
+        this.emit('bossSkillEnd', { skillId: 'dark_shield' });
+      }
+    }
+
+    // 2. 推進所有技能 CD（即使 targetQueue 為空也推進）
+    for (const skill of bossConfig.skills) {
+      ctx.skillTimers[skill.id] += dt;
+    }
+
+    // 無英雄在場時不執行動作
+    if (ctx.targetQueue.length === 0) return;
+
+    // 3. 依優先順序檢查技能（shockwave > dark_shield）
+    for (const skill of bossConfig.skills) {
+      if (ctx.skillTimers[skill.id] >= skill.cd * 1000) {
+        if (skill.type === 'buff_self' && ctx.shieldActive) continue; // 護盾 active 時跳過
+
+        ctx.skillTimers[skill.id] = 0;
+
+        if (skill.type === 'aoe_damage') {
+          // 震盪波：對所有正在戰鬥的英雄造成傷害
+          const dmg = Math.round(this._gameState.bossAtk * skill.damageMultiplier);
+          const hitHeroes = this._heroes.filter(h => h.state === 'fighting' && h.hp > 0);
+          for (const hero of hitHeroes) {
+            hero.hp -= dmg;
+            this.emit('attack', {
+              attackerType: 'boss', targetType: 'hero',
+              targetId: hero.instanceId, damage: dmg, isSkill: true,
+            });
+          }
+          this.emit('bossSkill', { skillId: skill.id, skillName: skill.name });
+        } else if (skill.type === 'buff_self') {
+          // 暗影護盾：啟動減傷
+          ctx.shieldActive = true;
+          ctx.shieldTimer = skill.duration * 1000;
+          this.emit('bossSkill', { skillId: skill.id, skillName: skill.name });
+        }
+        return; // 每 tick 至多一個動作
+      }
+    }
+
+    // 4. 技能未觸發 → 普攻
+    ctx.attackTimer += dt;
+    if (ctx.attackTimer >= ctx.attackCd * 1000) {
+      ctx.attackTimer = 0;
+      const targetHeroId = ctx.targetQueue[0];
       const targetHero = this._heroes.find(h => h.instanceId === targetHeroId);
       if (targetHero && targetHero.state === 'fighting') {
         const dmg = this._resolveAttack(this._gameState.bossAtk, targetHero.def);

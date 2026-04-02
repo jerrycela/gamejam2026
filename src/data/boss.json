@@ -1,0 +1,20 @@
+{
+  "attackCd": 2,
+  "skills": [
+    {
+      "id": "shockwave",
+      "name": "震盪波",
+      "cd": 8,
+      "type": "aoe_damage",
+      "damageMultiplier": 0.6
+    },
+    {
+      "id": "dark_shield",
+      "name": "暗影護盾",
+      "cd": 12,
+      "type": "buff_self",
+      "duration": 5,
+      "damageReduction": 0.5
+    }
+  ]
+}

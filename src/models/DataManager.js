@@ -19,6 +19,7 @@ export default class DataManager {
     scene.load.json('data_traps', 'src/data/traps.json');
     scene.load.json('data_drawCosts', 'src/data/drawCosts.json');
     scene.load.json('data_unlockShop', 'src/data/unlockShop.json');
+    scene.load.json('data_boss', 'src/data/boss.json');
   }
 
   // Call in Phaser's create() — pulls loaded data out of cache into instance arrays
@@ -29,6 +30,7 @@ export default class DataManager {
     this.traps = scene.cache.json.get('data_traps');
     this.drawCosts = scene.cache.json.get('data_drawCosts');
     this.unlockShop = scene.cache.json.get('data_unlockShop') || [];
+    this.boss = scene.cache.json.get('data_boss');
     this._loaded = true;
     console.log('[DataManager] Loaded:', {
       monsters: this.monsters.length,
@@ -64,6 +66,10 @@ export default class DataManager {
 
   getUnlockShopItems() {
     return this.unlockShop;
+  }
+
+  getBossConfig() {
+    return this.boss;
   }
 
   lookupName(type, id) {
