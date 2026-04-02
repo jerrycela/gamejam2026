@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "output=$(npm run build 2>&1); rc=$?; if [ $rc -ne 0 ]; then echo \"{\\\"systemMessage\\\": \\\"Build failed! Fix errors before continuing.\\\"}\"; fi; exit 0",
+            "timeout": 30,
+            "statusMessage": "Checking build..."
+          }
+        ]
+      }
+    ]
+  }
+}
