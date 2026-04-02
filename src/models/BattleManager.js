@@ -115,11 +115,32 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
 
   _tickMoving(hero, dt) {
     hero.moveTimer += dt;
-    if (hero.moveTimer < MOVE_DURATION) return;
+    if (hero.moveTimer < hero.effectiveMoveDuration) return;
 
     hero.moveTimer = 0;
     hero.currentCellId = hero.targetCellId;
     this.emit('heroArrive', { hero, cellId: hero.currentCellId });
+
+    // --- Debuff tick (after heroArrive, before cell processing) ---
+    for (const debuff of hero.debuffs) {
+      debuff.cellsRemaining--;
+      if (debuff.type === 'dot') {
+        hero.hp -= debuff.tickDamage;
+        this.emit('dotDamage', { hero, cellId: hero.currentCellId, damage: debuff.tickDamage });
+        if (hero.hp <= 0) {
+          // Remove expired debuffs before returning
+          hero.debuffs = hero.debuffs.filter(d => d.cellsRemaining > 0);
+          this._heroDefeated(hero, hero.currentCellId);
+          return;
+        }
+      }
+    }
+    hero.debuffs = hero.debuffs.filter(d => d.cellsRemaining > 0);
+    const activeSlow = hero.debuffs.find(d => d.type === 'slow');
+    hero.effectiveMoveDuration = activeSlow
+      ? MOVE_DURATION * activeSlow.moveDurationMult
+      : MOVE_DURATION;
+    // --- End debuff tick ---
 
     const cell = this._gameState.getCell(hero.currentCellId);
     if (!cell) return;
@@ -412,7 +433,42 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     const multiplier = levelEntry ? levelEntry.damageMultiplier : 1.0;
     const damage = Math.round(trapDef.baseDamage * multiplier);
     hero.hp -= damage;
+
+    // Apply special effects based on effectType
+    if (trapDef.effectType === 'ice') {
+      this._applyDebuff(hero, {
+        type: 'slow',
+        moveDurationMult: 2,
+        cellsRemaining: trapDef.slowTurns || 3,
+      });
+    } else if (trapDef.effectType === 'poison_dot') {
+      this._applyDebuff(hero, {
+        type: 'dot',
+        tickDamage: 5,
+        cellsRemaining: trapDef.dotTicks || 4,
+      });
+    }
+    // fire_aoe: MVP — base damage to triggerer only, no additional debuff
+
     return damage;
+  }
+
+  /**
+   * Apply a debuff to a hero using overwrite-if-larger-cellsRemaining rule.
+   * Same type: keep the one with larger cellsRemaining. Different types coexist.
+   * @param {HeroInstance} hero
+   * @param {{ type: string, cellsRemaining: number, [key: string]: any }} debuff
+   */
+  _applyDebuff(hero, debuff) {
+    const existing = hero.debuffs.find(d => d.type === debuff.type);
+    if (existing) {
+      if (debuff.cellsRemaining > existing.cellsRemaining) {
+        Object.assign(existing, debuff);
+      }
+      // else keep existing (it has more time remaining)
+    } else {
+      hero.debuffs.push({ ...debuff });
+    }
   }
 
   _restoreMonsters() {

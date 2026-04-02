@@ -1,6 +1,9 @@
 // HeroInstance.js
 // Battle-scoped hero data object. NOT persisted across battles.
 
+// Must match MOVE_DURATION in BattleManager.js
+const MOVE_DURATION = 400;
+
 export default class HeroInstance {
   /**
    * @param {string} typeId - Hero definition id (e.g. 'trainee_swordsman')
@@ -26,5 +29,7 @@ export default class HeroInstance {
     this.attackTimer = 0;
     this.skillTimer = 0;
     this.waveDelay = index * 800; // ms stagger between hero spawns
+    this.debuffs = [];
+    this.effectiveMoveDuration = MOVE_DURATION;
   }
 }

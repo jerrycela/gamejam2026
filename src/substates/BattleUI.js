@@ -70,6 +70,7 @@ export default class BattleUI {
     this._bind('monsterDefeated', (data) => this._onMonsterDefeated(data, session));
     this._bind('heroDefeated',    (data) => this._onHeroDefeated(data, session));
     this._bind('battleEnd',       (data) => this._onBattleEnd(data, session));
+    this._bind('dotDamage',       (data) => this._onDotDamage(data, session));
   }
 
   update(dt) {
@@ -85,7 +86,7 @@ export default class BattleUI {
 
       // Lerp position during move
       if (hero.state === 'moving' && visual.lerpFrom && visual.lerpTo) {
-        const progress = Math.min(1, hero.moveTimer / MOVE_DURATION);
+        const progress = Math.min(1, hero.moveTimer / (hero.effectiveMoveDuration || MOVE_DURATION));
         const x = visual.lerpFrom.x + (visual.lerpTo.x - visual.lerpFrom.x) * progress;
         const y = visual.lerpFrom.y + (visual.lerpTo.y - visual.lerpFrom.y) * progress;
         visual.container.setPosition(x, y);
@@ -95,6 +96,17 @@ export default class BattleUI {
       const ratio = Math.max(0, hero.hp / hero.maxHp);
       visual.hpFill.width = ratio * HP_BAR_W;
       visual.hpFill.fillColor = ratio > 0.5 ? 0x27ae60 : ratio > 0.25 ? 0xf39c12 : 0xe74c3c;
+
+      // Debuff stroke: slow (blue) takes priority over dot (green); clear if none
+      const hasSlow = hero.debuffs && hero.debuffs.some(d => d.type === 'slow');
+      const hasDot  = hero.debuffs && hero.debuffs.some(d => d.type === 'dot');
+      if (hasSlow) {
+        visual.circle.setStrokeStyle(2, 0x3498db);
+      } else if (hasDot) {
+        visual.circle.setStrokeStyle(2, 0x2ecc71);
+      } else {
+        visual.circle.setStrokeStyle(0);
+      }
     }
   }
 
@@ -282,6 +294,14 @@ export default class BattleUI {
 
     const pos = this._dungeonMapUI.getCellPosition(cellId);
     if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, damage, '#f39c12');
+  }
+
+  _onDotDamage({ hero, cellId, damage }, session) {
+    if (this._sessionId !== session) return;
+    if (this._battleManager.getSpeedMultiplier() >= 10) return;
+
+    const pos = this._dungeonMapUI.getCellPosition(cellId);
+    if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, damage, '#2ecc71');
   }
 
   _onMonsterDefeated({ cellId }, session) {
