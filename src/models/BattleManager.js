@@ -107,6 +107,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       hero.state = 'moving';
       hero.currentCellId = this._portalCellId;
       this.emit('heroSpawn', { hero });
+      this._gameState.recordHeroSeen(hero.typeId);
       this._assignNextMove(hero);
     }
   }
@@ -538,6 +539,11 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     if (captured) {
       hero.state = 'captured';
       this._gameState.addPrisoner(hero.typeId, hero.name);
+    }
+
+    // Only count as killed if not captured
+    if (!captured) {
+      this._gameState.recordHeroKilled(hero.typeId);
     }
 
     this.emit('heroDefeated', { hero, cellId, captured, goldReward });

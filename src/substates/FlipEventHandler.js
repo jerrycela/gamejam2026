@@ -93,6 +93,7 @@ export default class FlipEventHandler {
         gold: this.gameState.gold,
         day: this.gameState.day,
         monstersOwned: this.gameState.monsterRoster.length,
+        heroEncounters: this.gameState.heroEncounters,
       }
     };
     this.scene.scene.start('ResultScene', data);

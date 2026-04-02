@@ -40,6 +40,10 @@ export default class GameState {
     /** @type {object[]} */
     this.prisoners = [];
 
+    // --- Bestiary (per-run encounter tracking) ---
+    /** @type {Object<string, {seen: number, killed: number}>} */
+    this.heroEncounters = {};
+
     // --- Monster roster ---
     // One MonsterInstance per unlocked monster type at run start
     /** @type {MonsterInstance[]} */
@@ -308,6 +312,16 @@ export default class GameState {
     this.day++;
     this.initFlipMatrix();
     console.log('[GameState] Advanced to day', this.day);
+  }
+
+  recordHeroSeen(typeId) {
+    if (!this.heroEncounters[typeId]) this.heroEncounters[typeId] = { seen: 0, killed: 0 };
+    this.heroEncounters[typeId].seen += 1;
+  }
+
+  recordHeroKilled(typeId) {
+    if (!this.heroEncounters[typeId]) this.heroEncounters[typeId] = { seen: 0, killed: 0 };
+    this.heroEncounters[typeId].killed += 1;
   }
 }
 

@@ -158,11 +158,32 @@ export default class MetaState {
     this._runFinalized = false;
   }
 
+  /**
+   * @returns {string[]} newDiscoveries - hero typeIds seen for the first time
+   */
   finalizeRun(gameState, victory) {
-    if (this._runFinalized) return;
+    if (this._runFinalized) return [];
+
+    // Compute new discoveries BEFORE merging (so we know what's new)
+    const newDiscoveries = [];
+    if (gameState.heroEncounters) {
+      for (const typeId of Object.keys(gameState.heroEncounters)) {
+        if (!this.bestiary.heroes[typeId]) {
+          newDiscoveries.push(typeId);
+        }
+      }
+      // Merge encounters into persistent bestiary
+      for (const [typeId, counts] of Object.entries(gameState.heroEncounters)) {
+        if (!this.bestiary.heroes[typeId]) this.bestiary.heroes[typeId] = { seen: 0, killed: 0 };
+        this.bestiary.heroes[typeId].seen += counts.seen;
+        this.bestiary.heroes[typeId].killed += counts.killed;
+      }
+    }
+
     this.recordRunEnd(victory);
     this.addMetaGold(gameState.gold);
     this._runFinalized = true;
+    return newDiscoveries;
   }
 
   // --- MetaGold ---

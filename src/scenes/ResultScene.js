@@ -14,8 +14,12 @@ export default class ResultScene extends Phaser.Scene {
 
     const metaState = this.registry.get('metaState');
     const gameState = this.registry.get('gameState');
+    let newDiscoveries = [];
     if (metaState && this.result) {
-      metaState.finalizeRun(gameState || { gold: this.result?.stats?.gold ?? 0 }, this.result.victory);
+      newDiscoveries = metaState.finalizeRun(
+        gameState || { gold: this.result?.stats?.gold ?? 0, heroEncounters: this.result?.stats?.heroEncounters ?? {} },
+        this.result.victory
+      ) || [];
     }
 
     const stats = this.result?.stats || {};
@@ -54,6 +58,20 @@ export default class ResultScene extends Phaser.Scene {
       fontSize: '16px', color: '#cccccc', fontFamily: 'monospace',
       align: 'center', lineSpacing: 8
     }).setOrigin(0.5);
+
+    // New bestiary discoveries
+    if (newDiscoveries.length > 0) {
+      const dataManager = this.registry.get('dataManager');
+      const names = newDiscoveries.map(id => {
+        const def = dataManager?.getHero(id);
+        return def ? def.name : id;
+      });
+      const discoveryText = `新發現！${names.join('、')}`;
+      this.add.text(width / 2, height / 2 + 60, discoveryText, {
+        fontSize: '16px', color: '#f1c40f', fontFamily: 'monospace',
+        fontStyle: 'bold',
+      }).setOrigin(0.5);
+    }
 
     // Restart button
     this.add.text(width / 2, height * 0.72, '再次挑戰', {
