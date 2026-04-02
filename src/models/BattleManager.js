@@ -277,31 +277,40 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       hero.skillTimer += dt;
       if (hero.skillTimer >= hero.skill.cd * 1000) {
         hero.skillTimer = 0;
-        let skillDmg = hero.skill.damage;
-        // Anti-undead trait bonus
-        const holySkill = hero.trait && hero.trait.id === 'anti_undead' && monsterDef.type && monsterDef.type.includes('undead');
-        if (holySkill) {
-          skillDmg = Math.round(skillDmg * hero.trait.multiplier);
-        }
-        monster.currentHp -= skillDmg;
-        this.emit('attack', { attackerType: 'hero', attackerId: hero.instanceId, targetType: 'monster', targetId: monster.instanceId, damage: skillDmg, isSkill: true, cellId: ctx.cellId, holyBonus: holySkill || false });
+        if (hero.skill.healAmount) {
+          // Heal skill (priest): self-heal in monster fights
+          const amount = Math.min(hero.skill.healAmount, hero.maxHp - hero.hp);
+          if (amount > 0) {
+            hero.hp += amount;
+            this.emit('heroHeal', { hero, target: hero, amount, cellId: ctx.cellId });
+          }
+        } else if (hero.skill.damage) {
+          let skillDmg = hero.skill.damage;
+          // Anti-undead trait bonus
+          const holySkill = hero.trait && hero.trait.id === 'anti_undead' && monsterDef.type && monsterDef.type.includes('undead');
+          if (holySkill) {
+            skillDmg = Math.round(skillDmg * hero.trait.multiplier);
+          }
+          monster.currentHp -= skillDmg;
+          this.emit('attack', { attackerType: 'hero', attackerId: hero.instanceId, targetType: 'monster', targetId: monster.instanceId, damage: skillDmg, isSkill: true, cellId: ctx.cellId, holyBonus: holySkill || false });
 
-        // Check monster death after skill hit
-        if (monster.currentHp <= 0) {
-          monster._battleDead = true;
-          this._combatContexts.delete(hero.instanceId);
-          this._cellCombatOwner.delete(ctx.cellId);
-          this.emit('monsterDefeated', { cellId: ctx.cellId, monsterId: monster.instanceId });
-          hero.state = 'moving';
-          hero.attackTimer = 0;
-          hero.skillTimer = 0;
-          this._assignNextMove(hero);
-          return;
-        }
+          // Check monster death after skill hit
+          if (monster.currentHp <= 0) {
+            monster._battleDead = true;
+            this._combatContexts.delete(hero.instanceId);
+            this._cellCombatOwner.delete(ctx.cellId);
+            this.emit('monsterDefeated', { cellId: ctx.cellId, monsterId: monster.instanceId });
+            hero.state = 'moving';
+            hero.attackTimer = 0;
+            hero.skillTimer = 0;
+            this._assignNextMove(hero);
+            return;
+          }
 
-        // Burn on skill trait
-        if (hero.trait && hero.trait.id === 'burn_on_skill' && Math.random() < hero.trait.chance) {
-          ctx.burnState = { damage: hero.trait.damage, ticksRemaining: hero.trait.ticks, timer: 0 };
+          // Burn on skill trait
+          if (hero.trait && hero.trait.id === 'burn_on_skill' && Math.random() < hero.trait.chance) {
+            ctx.burnState = { damage: hero.trait.damage, ticksRemaining: hero.trait.ticks, timer: 0 };
+          }
         }
       }
     }
@@ -401,17 +410,30 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     }
 
     // Hero skill vs boss
-    if (hero.skill && hero.skill.damage) {
+    if (hero.skill) {
       hero.skillTimer += dt;
       if (hero.skillTimer >= hero.skill.cd * 1000) {
         hero.skillTimer = 0;
-        let skillDmg = hero.skill.damage;
-        // Shield 減傷（cached reduction from _bossContext）
-        if (this._bossContext?.shieldActive) {
-          skillDmg = Math.round(skillDmg * (1 - this._bossContext.shieldReduction));
+        if (hero.skill.healAmount) {
+          // Heal skill (priest): heal lowest HP ally in boss fight
+          const allies = this._heroes.filter(h => h.state === 'fighting' && h.hp > 0);
+          if (allies.length > 0) {
+            const target = allies.reduce((lowest, h) => h.hp < lowest.hp ? h : lowest);
+            const amount = Math.min(hero.skill.healAmount, target.maxHp - target.hp);
+            if (amount > 0) {
+              target.hp += amount;
+              this.emit('heroHeal', { hero, target, amount, cellId: ctx.cellId });
+            }
+          }
+        } else if (hero.skill.damage) {
+          let skillDmg = hero.skill.damage;
+          // Shield 減傷（cached reduction from _bossContext）
+          if (this._bossContext?.shieldActive) {
+            skillDmg = Math.round(skillDmg * (1 - this._bossContext.shieldReduction));
+          }
+          this._gameState.bossHp -= skillDmg;
+          this.emit('bossHit', { hero, damage: skillDmg, isSkill: true, shielded: this._bossContext?.shieldActive || false });
         }
-        this._gameState.bossHp -= skillDmg;
-        this.emit('bossHit', { hero, damage: skillDmg, isSkill: true, shielded: this._bossContext?.shieldActive || false });
       }
     }
 

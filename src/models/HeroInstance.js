@@ -20,7 +20,7 @@ export default class HeroInstance {
     this.def = def.baseDef;
     this.attackCd = def.attackCd;
     // Normalize skill: only keep damage-type skills for auto-cast
-    this.skill = (def.skill && def.skill.damage) ? { ...def.skill } : null;
+    this.skill = (def.skill && (def.skill.damage || def.skill.healAmount)) ? { ...def.skill } : null;
     this.currentCellId = null;
     this.targetCellId = null;
     this.state = 'waiting'; // waiting | moving | fighting | waitingForCombat | dead | captured

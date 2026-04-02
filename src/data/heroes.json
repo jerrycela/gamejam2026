@@ -63,6 +63,7 @@
       "description": "為一名友方英雄恢復 20 點生命值"
     },
     "specialTrait": "隊伍治療核心，每 3 回合自動對血量最低的友方英雄施加護盾（吸收 15 點傷害）；神聖屬性使亡靈怪物受到的傷害提升 25%",
+    "trait": { "id": "anti_undead", "multiplier": 1.25 },
     "spawnWeight": {
       "normal": 3,
       "elite": 3,

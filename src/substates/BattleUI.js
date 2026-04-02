@@ -76,6 +76,7 @@ export default class BattleUI {
     this._bind('burnDamage',      (data) => this._onBurnDamage(data, session));
     this._bind('bossSkill',       (data) => this._onBossSkill(data, session));
     this._bind('bossSkillEnd',    (data) => this._onBossSkillEnd(data, session));
+    this._bind('heroHeal',        (data) => this._onHeroHeal(data, session));
   }
 
   update(dt) {
@@ -487,6 +488,19 @@ export default class BattleUI {
   _onBossSkillEnd(_data, session) {
     if (this._sessionId !== session) return;
     // 護盾結束：未來可在此加視覺回饋
+  }
+
+  _onHeroHeal({ target: _target, amount, cellId }, session) {
+    if (this._sessionId !== session) return;
+    if (this._battleManager.getSpeedMultiplier() >= 10) return;
+
+    // Show heal popup at target's cell position (or heart cell for boss fight)
+    const heartCell = this._gameState.dungeonGrid.find(c => c.type === 'heart');
+    const pos = cellId ? this._dungeonMapUI.getCellPosition(cellId) : null;
+    const displayPos = pos || (heartCell ? { x: heartCell.position.x, y: heartCell.position.y } : null);
+    if (displayPos) {
+      this._spawnDamagePopup(displayPos.x, displayPos.y - 20, `+${amount}`, '#2ecc71');
+    }
   }
 
   // ---------------------------------------------------------------------------
