@@ -1,15 +1,16 @@
 // MetaState.js
 // Manages persistent cross-run progress stored in localStorage.
-// Key: 'dungeon_lord_meta'  |  Current schema version: 1
+// Key: 'dungeon_lord_meta'  |  Current schema version: 2
 
 const STORAGE_KEY = 'dungeon_lord_meta';
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 /** Default seed used for a fresh save and as the source of missing fields during migration. */
 const DEFAULT_META = {
-  version: 1,
+  version: 2,
   bossLevel: 1,
   totalRuns: 0,
+  metaGold: 0,
   unlockedMonsters: ['skeleton_knight', 'goblin'],
   unlockedRooms: ['dungeon', 'training'],
   unlockedTraps: ['arrow', 'boulder'],
@@ -25,10 +26,12 @@ export default class MetaState {
     this.version = DEFAULT_META.version;
     this.bossLevel = DEFAULT_META.bossLevel;
     this.totalRuns = DEFAULT_META.totalRuns;
+    this.metaGold = DEFAULT_META.metaGold;
     this.unlockedMonsters = [...DEFAULT_META.unlockedMonsters];
     this.unlockedRooms = [...DEFAULT_META.unlockedRooms];
     this.unlockedTraps = [...DEFAULT_META.unlockedTraps];
     this.bestiary = { heroes: {}, monsters: {} };
+    this._runFinalized = false;
   }
 
   // --- Persistence ---
@@ -60,6 +63,12 @@ export default class MetaState {
       // Copy all fields from the (possibly migrated) save onto this instance
       Object.assign(this, saved);
 
+      // Validate numeric fields regardless of version
+      if (!Number.isFinite(this.metaGold)) this.metaGold = 0;
+      this.metaGold = Math.max(0, this.metaGold);
+      if (!Number.isFinite(this.bossLevel)) this.bossLevel = DEFAULT_META.bossLevel;
+      if (!Number.isFinite(this.totalRuns)) this.totalRuns = DEFAULT_META.totalRuns;
+
       // Validate array fields — fall back to defaults if corrupted
       const arrayFields = ['unlockedMonsters', 'unlockedRooms', 'unlockedTraps'];
       for (const field of arrayFields) {
@@ -90,6 +99,7 @@ export default class MetaState {
       version: this.version,
       bossLevel: this.bossLevel,
       totalRuns: this.totalRuns,
+      metaGold: this.metaGold,
       unlockedMonsters: [...this.unlockedMonsters],
       unlockedRooms: [...this.unlockedRooms],
       unlockedTraps: [...this.unlockedTraps],
@@ -107,6 +117,7 @@ export default class MetaState {
     this.version = DEFAULT_META.version;
     this.bossLevel = DEFAULT_META.bossLevel;
     this.totalRuns = DEFAULT_META.totalRuns;
+    this.metaGold = DEFAULT_META.metaGold;
     this.unlockedMonsters = [...DEFAULT_META.unlockedMonsters];
     this.unlockedRooms = [...DEFAULT_META.unlockedRooms];
     this.unlockedTraps = [...DEFAULT_META.unlockedTraps];
@@ -141,6 +152,46 @@ export default class MetaState {
     }
     this.save();
     console.log('[MetaState] Run ended. Victory:', victory, '| bossLevel:', this.bossLevel, '| totalRuns:', this.totalRuns);
+  }
+
+  beginRun() {
+    this._runFinalized = false;
+  }
+
+  finalizeRun(gameState, victory) {
+    if (this._runFinalized) return;
+    this.recordRunEnd(victory);
+    this.addMetaGold(gameState.gold);
+    this._runFinalized = true;
+  }
+
+  // --- MetaGold ---
+
+  addMetaGold(amount) {
+    this.metaGold += amount;
+    this.save();
+  }
+
+  spendMetaGold(amount) {
+    if (this.metaGold < amount) return false;
+    this.metaGold -= amount;
+    this.save();
+    return true;
+  }
+
+  purchaseUnlock(type, id, cost) {
+    if (this.metaGold < cost) return false;
+    const arrayMap = {
+      monsters: 'unlockedMonsters',
+      rooms: 'unlockedRooms',
+      traps: 'unlockedTraps'
+    };
+    const key = arrayMap[type];
+    if (!key || this[key].includes(id)) return false;
+    this.metaGold -= cost;
+    this[key].push(id);
+    this.save();
+    return true;
   }
 
   // --- Content unlocking ---
@@ -187,6 +238,18 @@ export default class MetaState {
           : DEFAULT_META[key];
       }
     }
+
+    // v1 -> v2: add metaGold
+    if (!saved.version || saved.version < 2) {
+      if (!Number.isFinite(migrated.metaGold)) migrated.metaGold = 0;
+      migrated.metaGold = Math.max(0, migrated.metaGold);
+    }
+
+    // Validate numeric fields
+    if (!Number.isFinite(migrated.bossLevel)) migrated.bossLevel = DEFAULT_META.bossLevel;
+    if (!Number.isFinite(migrated.totalRuns)) migrated.totalRuns = DEFAULT_META.totalRuns;
+    if (!Number.isFinite(migrated.metaGold)) migrated.metaGold = 0;
+    migrated.metaGold = Math.max(0, migrated.metaGold);
 
     // Ensure bestiary sub-keys exist
     if (!migrated.bestiary) migrated.bestiary = { heroes: {}, monsters: {} };

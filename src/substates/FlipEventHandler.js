@@ -1,4 +1,5 @@
 import { rollStarRating } from '../utils/constants.js';
+import { buildUnlockedPool } from '../utils/buildUnlockedPool.js';
 
 export default class FlipEventHandler {
   constructor(scene, gameState, gameScene) {
@@ -119,9 +120,10 @@ export default class FlipEventHandler {
     } else {
       // 20%: Random card to hand
       const dataManager = this.scene.registry.get('dataManager');
+      const metaState = this.scene.registry.get('metaState');
       const pool = [
-        ...dataManager.rooms.map(r => ({ type: 'room', id: r.id })),
-        ...dataManager.traps.map(t => ({ type: 'trap', id: t.id })),
+        ...buildUnlockedPool(dataManager.rooms, 'rooms', metaState).map(r => ({ type: 'room', id: r.id })),
+        ...buildUnlockedPool(dataManager.traps, 'traps', metaState).map(t => ({ type: 'trap', id: t.id })),
       ];
       const pick = pool[Math.floor(Math.random() * pool.length)];
       const starRating = rollStarRating();

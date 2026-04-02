@@ -13,8 +13,9 @@ export default class ResultScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     const metaState = this.registry.get('metaState');
+    const gameState = this.registry.get('gameState');
     if (metaState && this.result) {
-      metaState.recordRunEnd(this.result.victory);
+      metaState.finalizeRun(gameState || { gold: this.result?.stats?.gold ?? 0 }, this.result.victory);
     }
 
     const stats = this.result?.stats || {};
@@ -34,6 +35,12 @@ export default class ResultScene extends Phaser.Scene {
       }).setOrigin(0.5);
     }
 
+    // Gold saved line
+    const goldSaved = stats.gold ?? 0;
+    this.add.text(width / 2, height / 4 + 80, `+${goldSaved} 金幣存入 (總計: ${metaState?.metaGold ?? 0})`, {
+      fontSize: '16px', color: '#f1c40f', fontFamily: 'monospace'
+    }).setOrigin(0.5);
+
     // Run summary
     const summaryLines = [
       `存活天數: ${stats.day ?? 1}`,
@@ -49,12 +56,21 @@ export default class ResultScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Restart button
-    this.add.text(width / 2, height * 0.75, '再次挑戰', {
+    this.add.text(width / 2, height * 0.72, '再次挑戰', {
       fontSize: '22px', color: '#ffffff', fontFamily: 'sans-serif',
       backgroundColor: 'rgba(44,62,80,0.8)', padding: { x: 24, y: 12 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
         this.scene.start('GameScene');
+      });
+
+    // Back to Menu button
+    this.add.text(width / 2, height * 0.86, '返回主選單', {
+      fontSize: '18px', color: '#aaaaaa', fontFamily: 'sans-serif',
+      backgroundColor: '#333333', padding: { x: 20, y: 8 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this.scene.start('BootScene');
       });
   }
 }

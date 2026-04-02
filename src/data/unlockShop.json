@@ -1,0 +1,11 @@
+[
+  { "type": "monsters", "id": "bat_succubus", "cost": 300 },
+  { "type": "monsters", "id": "rage_demon", "cost": 500 },
+  { "type": "monsters", "id": "frost_witch", "cost": 400 },
+  { "type": "rooms", "id": "hatchery", "cost": 400 },
+  { "type": "rooms", "id": "lab", "cost": 350 },
+  { "type": "rooms", "id": "treasury", "cost": 600 },
+  { "type": "traps", "id": "fire", "cost": 250 },
+  { "type": "traps", "id": "frost", "cost": 200 },
+  { "type": "traps", "id": "poison", "cost": 300 }
+]

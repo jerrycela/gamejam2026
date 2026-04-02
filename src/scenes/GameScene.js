@@ -10,6 +10,7 @@ import BattleUI from '../substates/BattleUI.js';
 import TortureUI from '../substates/TortureUI.js';
 import MonsterListUI from '../substates/MonsterListUI.js';
 import { EVENT_TYPES } from '../utils/constants.js';
+import { buildUnlockedPool } from '../utils/buildUnlockedPool.js';
 
 // Substate keys
 const SUBSTATES = ['flipMatrix', 'dungeonMap', 'cardPick', 'battle', 'torture', 'monsterList'];
@@ -38,6 +39,7 @@ export default class GameScene extends Phaser.Scene {
     // Retrieve shared state from registry
     this.dataManager = this.registry.get('dataManager');
     this.metaState = this.registry.get('metaState');
+    if (this.metaState) this.metaState.beginRun();
 
     // Initialize game state for this run
     this.gameState = new GameState(this.metaState, this.dataManager);
@@ -329,10 +331,12 @@ export default class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     container.add(title);
 
-    // Generate 3 shop items (rooms + traps, random)
+    // Generate 3 shop items (rooms + traps, filtered by unlock status)
+    const unlockedRooms = buildUnlockedPool(this.dataManager.rooms, 'rooms', this.metaState);
+    const unlockedTraps = buildUnlockedPool(this.dataManager.traps, 'traps', this.metaState);
     const pool = [
-      ...this.dataManager.rooms.map(r => ({ type: 'room', id: r.id, name: r.name, price: 100 })),
-      ...this.dataManager.traps.map(t => ({ type: 'trap', id: t.id, name: t.name, price: 80 })),
+      ...unlockedRooms.map(r => ({ type: 'room', id: r.id, name: r.name, price: 100 })),
+      ...unlockedTraps.map(t => ({ type: 'trap', id: t.id, name: t.name, price: 80 })),
     ];
 
     const items = [];

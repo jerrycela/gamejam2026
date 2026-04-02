@@ -1,4 +1,5 @@
 import { rollStarRating } from '../utils/constants.js';
+import { buildUnlockedPool } from '../utils/buildUnlockedPool.js';
 
 export default class CardPickUI {
   constructor(scene, gameState) {
@@ -117,9 +118,10 @@ export default class CardPickUI {
 
   _generateOptions() {
     const dataManager = this.scene.registry.get('dataManager');
+    const metaState = this.scene.registry.get('metaState');
     const pool = [
-      ...dataManager.rooms.map(r => ({ type: 'room', id: r.id })),
-      ...dataManager.traps.map(t => ({ type: 'trap', id: t.id })),
+      ...buildUnlockedPool(dataManager.rooms, 'rooms', metaState).map(r => ({ type: 'room', id: r.id })),
+      ...buildUnlockedPool(dataManager.traps, 'traps', metaState).map(t => ({ type: 'trap', id: t.id })),
     ];
     // Fisher-Yates shuffle to avoid duplicate picks
     for (let i = pool.length - 1; i > 0; i--) {

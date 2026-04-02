@@ -1,7 +1,7 @@
 ---
 baseline_date: "2026-04-01"
-last_modified: "2026-04-01"
-version: "1.1"
+last_modified: "2026-04-02"
+version: "2.0"
 ---
 
 # Meta — Meta-Progression & localStorage
@@ -23,27 +23,30 @@ THEN the following SHALL be available:
 
 Note: Torture slots are per-run (always start with 2 open, 2 locked). They are NOT meta-progression.
 
-#### Scenario: Unlock matrix
+#### Scenario: Unlock via Shop Purchase
 
-The following unlock conditions SHALL be used:
+Players SHALL unlock additional content by spending metaGold in the Boot Scene shop.
 
-| ID | Type | Unlock Condition |
-|----|------|------------------|
-| skeleton_knight | monster | Initial |
-| goblin | monster | Initial |
-| bat_succubus | monster | Complete run 2 |
-| rage_demon | monster | Complete run 4 |
-| frost_witch | monster | Complete run 6 |
-| dungeon | room | Initial |
-| training | room | Initial |
-| hatchery | room | Complete run 3 |
-| lab | room | Complete run 5 |
-| treasury | room | Boss level >= 3 |
-| arrow | trap | Initial |
-| boulder | trap | Initial |
-| frost | trap | Complete run 2 |
-| fire | trap | Complete run 4 |
-| poison | trap | Boss level >= 2 |
+| ID | Type | Cost (metaGold) |
+|----|------|-----------------|
+| bat_succubus | monster | 300 |
+| rage_demon | monster | 500 |
+| frost_witch | monster | 400 |
+| hatchery | room | 400 |
+| lab | room | 350 |
+| treasury | room | 600 |
+| fire | trap | 250 |
+| frost | trap | 200 |
+| poison | trap | 300 |
+
+Purchase is atomic: `MetaState.purchaseUnlock(type, id, cost)` checks balance, deducts metaGold, then unlocks — all or nothing.
+
+#### Scenario: metaGold Economy
+
+WHEN a run ends (victory or defeat)
+THEN all remaining `gameState.gold` SHALL be converted to `metaGold` via `MetaState.finalizeRun(gameState, victory)`.
+
+`finalizeRun` is idempotent (internal `_runFinalized` flag). `MetaState.beginRun()` resets the flag at the start of each new run (called by `GameScene.create()`).
 
 ---
 
@@ -84,14 +87,15 @@ THEN hero strength SHALL scale with glamour:
 
 ### Requirement: localStorage Schema
 
-#### Scenario: Save format
+#### Scenario: Save format (v2)
 
 The localStorage key `dungeon_lord_meta` SHALL store a JSON object:
 ```json
 {
-  "version": 1,
+  "version": 2,
   "bossLevel": 3,
   "totalRuns": 7,
+  "metaGold": 1250,
   "unlockedMonsters": ["skeleton_knight", "goblin", "bat_succubus"],
   "unlockedRooms": ["dungeon", "training", "hatchery"],
   "unlockedTraps": ["arrow", "boulder", "frost"],
@@ -106,9 +110,10 @@ The localStorage key `dungeon_lord_meta` SHALL store a JSON object:
 
 WHEN no localStorage data exists
 THEN MetaState SHALL initialize with:
-- `version`: 1
+- `version`: 2
 - `bossLevel`: 1
 - `totalRuns`: 0
+- `metaGold`: 0
 - `unlockedMonsters`: ["skeleton_knight", "goblin"]
 - `unlockedRooms`: ["dungeon", "training"]
 - `unlockedTraps`: ["arrow", "boulder"]
@@ -117,4 +122,8 @@ THEN MetaState SHALL initialize with:
 #### Scenario: Data migration
 
 WHEN the saved version is older than the current version
-THEN the game SHALL migrate the data (add new fields with defaults, never delete)
+THEN the game SHALL migrate the data:
+- v1→v2: add `metaGold: 0`
+- All numeric fields validated with `Number.isFinite()`, invalid values fallback to 0
+- `metaGold` clamped to `Math.max(0, value)` (prevent negative)
+- Never delete existing fields

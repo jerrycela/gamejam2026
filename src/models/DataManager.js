@@ -18,6 +18,7 @@ export default class DataManager {
     scene.load.json('data_rooms', 'src/data/rooms.json');
     scene.load.json('data_traps', 'src/data/traps.json');
     scene.load.json('data_drawCosts', 'src/data/drawCosts.json');
+    scene.load.json('data_unlockShop', 'src/data/unlockShop.json');
   }
 
   // Call in Phaser's create() — pulls loaded data out of cache into instance arrays
@@ -27,6 +28,7 @@ export default class DataManager {
     this.rooms = scene.cache.json.get('data_rooms');
     this.traps = scene.cache.json.get('data_traps');
     this.drawCosts = scene.cache.json.get('data_drawCosts');
+    this.unlockShop = scene.cache.json.get('data_unlockShop') || [];
     this._loaded = true;
     console.log('[DataManager] Loaded:', {
       monsters: this.monsters.length,
@@ -58,5 +60,17 @@ export default class DataManager {
   // drawIndex is clamped to the last entry so the cost never goes undefined
   getDrawCost(drawIndex) {
     return this.drawCosts[Math.min(drawIndex, this.drawCosts.length - 1)];
+  }
+
+  getUnlockShopItems() {
+    return this.unlockShop;
+  }
+
+  lookupName(type, id) {
+    const allArrays = { monsters: this.monsters, rooms: this.rooms, traps: this.traps };
+    const arr = allArrays[type];
+    if (!arr) return id;
+    const found = arr.find(item => item.id === id);
+    return found ? found.name : id;
   }
 }
