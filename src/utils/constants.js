@@ -1,5 +1,7 @@
 // Central constants shared across modules
 
+export const MOVE_DURATION = 400; // ms per cell transition (hero movement speed)
+
 export const EVENT_TYPES = {
   normalBattle: { weight: 30, label: '普通戰鬥', color: 0xc0392b },
   eliteBattle:  { weight: 15, label: '精英戰鬥', color: 0xe67e22 },

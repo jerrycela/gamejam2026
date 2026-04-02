@@ -3,9 +3,7 @@
 
 import Phaser from 'phaser';
 import HeroInstance from './HeroInstance.js';
-import { TORTURE_CONFIG, FINAL_BATTLE_CONFIG } from '../utils/constants.js';
-
-export const MOVE_DURATION = 400; // ms per cell transition
+import { TORTURE_CONFIG, FINAL_BATTLE_CONFIG, MOVE_DURATION } from '../utils/constants.js';
 
 export default class BattleManager extends Phaser.Events.EventEmitter {
   /**
@@ -468,6 +466,13 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       // else keep existing (it has more time remaining)
     } else {
       hero.debuffs.push({ ...debuff });
+    }
+    // Immediately sync effectiveMoveDuration so slow takes effect on current movement
+    if (debuff.type === 'slow') {
+      const activeSlow = hero.debuffs.find(d => d.type === 'slow');
+      if (activeSlow) {
+        hero.effectiveMoveDuration = MOVE_DURATION * activeSlow.moveDurationMult;
+      }
     }
   }
 

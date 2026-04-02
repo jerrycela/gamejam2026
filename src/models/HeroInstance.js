@@ -1,8 +1,7 @@
 // HeroInstance.js
 // Battle-scoped hero data object. NOT persisted across battles.
 
-// Must match MOVE_DURATION in BattleManager.js
-const MOVE_DURATION = 400;
+import { MOVE_DURATION } from '../utils/constants.js';
 
 export default class HeroInstance {
   /**

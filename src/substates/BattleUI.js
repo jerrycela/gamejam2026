@@ -1,7 +1,7 @@
 // BattleUI.js
 // Visual layer for BattleManager: hero circles, HP bars, damage popups, result banner.
 
-import { MOVE_DURATION } from '../models/BattleManager.js';
+import { MOVE_DURATION } from '../utils/constants.js';
 
 const HERO_COLORS = {
   trainee_swordsman: 0x3498db,
