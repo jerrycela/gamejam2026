@@ -350,8 +350,17 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       if (ctx.monsterSkillTimer >= skillDef.cd * 1000) {
         ctx.monsterSkillTimer = 0;
         const dmg = skillDef.damage;
-        hero.hp -= dmg;
-        this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: hero.instanceId, damage: dmg, isSkill: true, cellId: ctx.cellId });
+
+        if (skillDef.type === 'aoe') {
+          const targets = this._heroes.filter(h => h.state === 'fighting' && h.hp > 0);
+          for (const target of targets) {
+            target.hp -= dmg;
+            this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: target.instanceId, damage: dmg, isSkill: true, cellId: ctx.cellId });
+          }
+        } else {
+          hero.hp -= dmg;
+          this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: hero.instanceId, damage: dmg, isSkill: true, cellId: ctx.cellId });
+        }
       }
     }
 
