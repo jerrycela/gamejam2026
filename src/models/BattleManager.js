@@ -84,6 +84,23 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       }
     }
 
+    // Priest auto-shield passive (before boss action, after all hero ticks)
+    for (const hero of this._heroes) {
+      if (hero.state !== 'fighting' || hero.hp <= 0) continue;
+      if (hero.typeId !== 'priest') continue;
+
+      hero.traitState.shieldTimer = (hero.traitState.shieldTimer || 0) + dt;
+      if (hero.traitState.shieldTimer >= 3000) {
+        hero.traitState.shieldTimer = 0;
+        const allies = this._heroes.filter(h => h.state === 'fighting' && h.hp > 0);
+        if (allies.length > 0) {
+          const target = allies.reduce((lowest, h) => h.hp < lowest.hp ? h : lowest);
+          target.shield = 15;
+          this.emit('heroShield', { hero, target, amount: 15 });
+        }
+      }
+    }
+
     // Boss action tick — skills + shared attack (after all hero ticks)
     this._tickBossAction(dt);
 
@@ -124,7 +141,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     for (const debuff of hero.debuffs) {
       debuff.cellsRemaining--;
       if (debuff.type === 'dot') {
-        hero.hp -= debuff.tickDamage;
+        this._applyDamageToHero(hero, debuff.tickDamage);
         this.emit('dotDamage', { hero, cellId: hero.currentCellId, damage: debuff.tickDamage });
         if (hero.hp <= 0) {
           // Remove expired debuffs before returning
@@ -335,7 +352,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       ctx.monsterAttackTimer = 0;
       const monsterAtk = monsterDef.baseAtk * synergyMult * buffFlags.atkMult;
       const dmg = this._resolveAttack(monsterAtk, hero.def);
-      hero.hp -= dmg;
+      this._applyDamageToHero(hero, dmg);
       this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: hero.instanceId, damage: dmg, cellId: ctx.cellId });
     }
 
@@ -354,11 +371,11 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
         if (skillDef.type === 'aoe') {
           const targets = this._heroes.filter(h => h.state === 'fighting' && h.hp > 0);
           for (const target of targets) {
-            target.hp -= dmg;
+            this._applyDamageToHero(target, dmg);
             this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: target.instanceId, damage: dmg, isSkill: true, cellId: ctx.cellId });
           }
         } else {
-          hero.hp -= dmg;
+          this._applyDamageToHero(hero, dmg);
           this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: hero.instanceId, damage: dmg, isSkill: true, cellId: ctx.cellId });
         }
       }
@@ -490,7 +507,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
           const dmg = Math.round(this._gameState.bossAtk * skill.damageMultiplier);
           const hitHeroes = this._heroes.filter(h => h.state === 'fighting' && h.hp > 0);
           for (const hero of hitHeroes) {
-            hero.hp -= dmg;
+            this._applyDamageToHero(hero, dmg);
             this.emit('attack', {
               attackerType: 'boss', targetType: 'hero',
               targetId: hero.instanceId, damage: dmg, isSkill: true,
@@ -515,10 +532,24 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       const targetHero = this._heroes.find(h => h.instanceId === targetHeroId);
       if (targetHero && targetHero.state === 'fighting') {
         const dmg = this._resolveAttack(this._gameState.bossAtk, targetHero.def);
-        targetHero.hp -= dmg;
+        this._applyDamageToHero(targetHero, dmg);
         this.emit('attack', { attackerType: 'boss', targetType: 'hero', targetId: targetHeroId, damage: dmg });
       }
     }
+  }
+
+  // --- Damage helper (shield absorption) ---
+
+  _applyDamageToHero(hero, dmg) {
+    if (hero.shield > 0) {
+      if (dmg <= hero.shield) {
+        hero.shield -= dmg;
+        return;
+      }
+      dmg -= hero.shield;
+      hero.shield = 0;
+    }
+    hero.hp -= dmg;
   }
 
   // --- Hero defeated pipeline ---
@@ -612,7 +643,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     const levelEntry = trapDef.levels ? trapDef.levels.find(l => l.level === level) : null;
     const multiplier = levelEntry ? levelEntry.damageMultiplier : 1.0;
     const damage = Math.round(trapDef.baseDamage * multiplier);
-    hero.hp -= damage;
+    this._applyDamageToHero(hero, damage);
 
     // Apply special effects based on effectType
     if (trapDef.effectType === 'ice') {

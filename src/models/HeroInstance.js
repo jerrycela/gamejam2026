@@ -28,6 +28,7 @@ export default class HeroInstance {
     this.attackTimer = 0;
     this.skillTimer = 0;
     this.waveDelay = index * 800; // ms stagger between hero spawns
+    this.shield = 0;
     this.debuffs = [];
     this.trait = def.trait || null;
     this.traitState = {};

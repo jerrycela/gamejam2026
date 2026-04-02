@@ -77,6 +77,7 @@ export default class BattleUI {
     this._bind('bossSkill',       (data) => this._onBossSkill(data, session));
     this._bind('bossSkillEnd',    (data) => this._onBossSkillEnd(data, session));
     this._bind('heroHeal',        (data) => this._onHeroHeal(data, session));
+    this._bind('heroShield',      (data) => this._onHeroShield(data, session));
   }
 
   update(dt) {
@@ -500,6 +501,16 @@ export default class BattleUI {
     const displayPos = pos || (heartCell ? { x: heartCell.position.x, y: heartCell.position.y } : null);
     if (displayPos) {
       this._spawnDamagePopup(displayPos.x, displayPos.y - 20, `+${amount}`, '#2ecc71');
+    }
+  }
+
+  _onHeroShield({ target, amount }, session) {
+    if (this._sessionId !== session) return;
+    if (this._battleManager.getSpeedMultiplier() >= 10) return;
+
+    const visual = this._heroVisuals.get(target.instanceId);
+    if (visual) {
+      this._spawnDamagePopup(visual.sprite.x, visual.sprite.y - 30, `護盾+${amount}`, '#3498db');
     }
   }
 
