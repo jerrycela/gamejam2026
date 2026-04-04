@@ -187,6 +187,10 @@ export default class DungeonMapUI {
       this.scene.input.off('pointerupoutside', this._handResetHandler);
       this.scene.input.off('pointercancel',    this._handResetHandler);
     }
+    if (this._mapBgImage) this._mapBgImage.destroy();
+    if (this._pathSpriteContainer) this._pathSpriteContainer.destroy(true);
+    if (this._cellLayerContainer) this._cellLayerContainer.destroy(true);
+    if (this._pathOverlayContainer) this._pathOverlayContainer.destroy(true);
     if (this._rootContainer) this._rootContainer.destroy();
   }
 
@@ -204,16 +208,32 @@ export default class DungeonMapUI {
     this._mapWorldContainer = scene.add.container(0, TOP_HUD_HEIGHT);
     this._rootContainer.add(this._mapWorldContainer);
 
-    // Background graphics (direct, no RenderTexture — avoids Canvas renderer truncation)
-    this._bgGfx = scene.add.graphics();
-    this._mapWorldContainer.add(this._bgGfx);
+    // Background image (created once, never rebuilt)
+    this._mapBgImage = scene.add.image(0, 0, 'map_bg').setOrigin(0, 0);
+    this._mapWorldContainer.add(this._mapBgImage);
+
+    // Path base graphics (glow + main lines, redrawn on rebuild)
     this._pathGfx = scene.add.graphics();
     this._mapWorldContainer.add(this._pathGfx);
-    this._forecastGfx = scene.add.graphics();
-    this._mapWorldContainer.add(this._forecastGfx);
+
+    // Path sprite container (chain link sprites, cleared + repopulated on rebuild)
+    this._pathSpriteContainer = scene.add.container(0, 0);
+    this._mapWorldContainer.add(this._pathSpriteContainer);
+
+    // Cell layer container — holds all cell containers, ensures correct z-order
+    this._cellLayerContainer = scene.add.container(0, 0);
+    this._mapWorldContainer.add(this._cellLayerContainer);
 
     // cellContainers array — rebuilt on each refresh()
     this._cellContainers = [];
+
+    // Path overlay container (arrows + diamonds — ABOVE cells)
+    this._pathOverlayContainer = scene.add.container(0, 0);
+    this._mapWorldContainer.add(this._pathOverlayContainer);
+
+    // Forecast graphics (dashed route, dynamic per-wave)
+    this._forecastGfx = scene.add.graphics();
+    this._mapWorldContainer.add(this._forecastGfx);
 
     // Hand area — fixed position at bottom
     const handY = height - TAB_BAR_HEIGHT - HAND_H;
@@ -241,30 +261,9 @@ export default class DungeonMapUI {
   // ---------------------------------------------------------------------------
 
   _rebuildBackground() {
-    this._bgGfx.clear();
     this._pathGfx.clear();
-
-    // 1. Parchment base
-    this._bgGfx.fillStyle(0x2d1b0e, 1);
-    this._bgGfx.fillRect(0, 0, MAP_WORLD_W, MAP_WORLD_H);
-
-    // Noise overlay — layered texture for parchment feel
-    this._bgGfx.fillStyle(0x3d2515, 0.4);
-    for (let ny = 0; ny < MAP_WORLD_H; ny += 10) {
-      for (let nx = 0; nx < MAP_WORLD_W; nx += 10) {
-        if (Math.random() < 0.4) {
-          this._bgGfx.fillRect(nx, ny, 6, 6);
-        }
-      }
-    }
-    this._bgGfx.fillStyle(0x150d06, 0.25);
-    for (let ny = 0; ny < MAP_WORLD_H; ny += 18) {
-      for (let nx = 0; nx < MAP_WORLD_W; nx += 18) {
-        if (Math.random() < 0.3) {
-          this._bgGfx.fillRect(nx, ny, 12, 12);
-        }
-      }
-    }
+    this._pathSpriteContainer.removeAll(true);
+    this._pathOverlayContainer.removeAll(true);
 
     // 2. Path lines + decorations
     const grid = this.gameState.dungeonGrid;
@@ -419,14 +418,14 @@ export default class DungeonMapUI {
   _rebuildCells() {
     // Remove previous cell containers
     for (const c of this._cellContainers) {
-      this._mapWorldContainer.remove(c, true);
+      this._cellLayerContainer.remove(c, true);
     }
     this._cellContainers = [];
     this._stopPulseTweens();
 
     for (const cell of this.gameState.dungeonGrid) {
       const cellCont = this._buildCellContainer(cell);
-      this._mapWorldContainer.add(cellCont);
+      this._cellLayerContainer.add(cellCont);
       this._cellContainers.push(cellCont);
     }
   }
