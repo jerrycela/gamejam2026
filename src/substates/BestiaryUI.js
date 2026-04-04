@@ -1,4 +1,5 @@
 import { TOP_HUD_HEIGHT } from '../utils/constants.js';
+import SpriteHelper from '../utils/SpriteHelper.js';
 
 const ROW_HEIGHT = 100;
 const MAX_VISIBLE = 6;
@@ -81,24 +82,27 @@ export default class BestiaryUI {
     const rowBg = this._scene.add.rectangle(width / 2, y, width - 20, ROW_HEIGHT - 4, 0x1a1a2e, 0.8)
       .setStrokeStyle(1, 0x333355);
 
+    // Hero sprite icon
+    const spriteIcon = SpriteHelper.createSprite(this._scene, hero.spriteKey || `hero_${hero.id}`, 36, y, 32);
+
     // Name
-    const nameText = this._scene.add.text(20, y - 28, hero.name, {
+    const nameText = this._scene.add.text(56, y - 28, hero.name, {
       fontSize: '16px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0, 0.5);
 
     // Type tags
     const typeTags = hero.type.map(t => t).join(' / ');
-    const typeText = this._scene.add.text(20, y - 10, typeTags, {
+    const typeText = this._scene.add.text(56, y - 10, typeTags, {
       fontSize: '11px', color: TYPE_COLORS[hero.type[0]] || '#888888', fontFamily: 'monospace',
     }).setOrigin(0, 0.5);
 
     // Stats
-    const statsText = this._scene.add.text(20, y + 6, `HP ${hero.baseHp}  ATK ${hero.baseAtk}  DEF ${hero.baseDef}`, {
+    const statsText = this._scene.add.text(56, y + 6, `HP ${hero.baseHp}  ATK ${hero.baseAtk}  DEF ${hero.baseDef}`, {
       fontSize: '12px', color: '#aaaaaa', fontFamily: 'monospace',
     }).setOrigin(0, 0.5);
 
     // Skill name
-    const skillText = this._scene.add.text(20, y + 22, `技 ${hero.skill.name}`, {
+    const skillText = this._scene.add.text(56, y + 22, `技 ${hero.skill.name}`, {
       fontSize: '11px', color: '#66aaff', fontFamily: 'monospace',
     }).setOrigin(0, 0.5);
 
@@ -111,12 +115,14 @@ export default class BestiaryUI {
       fontSize: '12px', color: '#e74c3c', fontFamily: 'monospace',
     }).setOrigin(1, 0.5);
 
-    this._rootContainer.add([rowBg, nameText, typeText, statsText, skillText, countText, killText]);
+    this._rootContainer.add([rowBg, spriteIcon, nameText, typeText, statsText, skillText, countText, killText]);
   }
 
   _buildLockedRow(width, y) {
     const rowBg = this._scene.add.rectangle(width / 2, y, width - 20, ROW_HEIGHT - 4, 0x111122, 0.8)
       .setStrokeStyle(1, 0x222233);
+
+    const lockIcon = this._scene.add.arc(36, y, 16, 0, 360, false, 0x222233, 1);
 
     const lockText = this._scene.add.text(width / 2, y - 8, '??? 未知英雄', {
       fontSize: '16px', color: '#444455', fontFamily: 'monospace', fontStyle: 'bold',
@@ -126,6 +132,6 @@ export default class BestiaryUI {
       fontSize: '12px', color: '#333344', fontFamily: 'monospace',
     }).setOrigin(0.5);
 
-    this._rootContainer.add([rowBg, lockText, hintText]);
+    this._rootContainer.add([rowBg, lockIcon, lockText, hintText]);
   }
 }

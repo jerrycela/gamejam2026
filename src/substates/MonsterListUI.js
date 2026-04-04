@@ -1,4 +1,5 @@
 import { TOP_HUD_HEIGHT } from '../utils/constants.js';
+import SpriteHelper from '../utils/SpriteHelper.js';
 
 const ROW_HEIGHT = 72;
 const MAX_VISIBLE = 8;
@@ -70,18 +71,21 @@ export default class MonsterListUI {
     const rowBg = this._scene.add.rectangle(width / 2, y, width - 20, ROW_HEIGHT - 4, 0x1a1a2e, 0.8)
       .setStrokeStyle(1, 0x333355);
 
+    // Monster sprite icon (left side)
+    const spriteIcon = SpriteHelper.createSprite(this._scene, `monster_${instance.typeId}`, 36, y, 32);
+
     // Monster name (left)
-    const nameText = this._scene.add.text(20, y - 12, name, {
+    const nameText = this._scene.add.text(56, y - 12, name, {
       fontSize: '16px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0, 0.5);
 
     // HP / ATK (left, below name)
-    const statsText = this._scene.add.text(20, y + 12, `HP ${displayHp}  ATK ${displayAtk}`, {
+    const statsText = this._scene.add.text(56, y + 12, `HP ${displayHp}  ATK ${displayAtk}`, {
       fontSize: '12px', color: '#aaaaaa', fontFamily: 'monospace',
     }).setOrigin(0, 0.5);
 
     // Buff badge
-    const elements = [rowBg, nameText, statsText];
+    const elements = [rowBg, spriteIcon, nameText, statsText];
 
     if (instance.buffFlags && instance.buffFlags.converted) {
       const badge = this._scene.add.text(nameText.x + nameText.width + 8, y - 12, '強化', {

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import DataManager from '../models/DataManager.js';
 import MetaState from '../models/MetaState.js';
+import spriteManifest from '../data/spriteManifest.js';
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -32,6 +33,11 @@ export default class BootScene extends Phaser.Scene {
     // Register data loading
     this.dataManager = new DataManager();
     this.dataManager.registerPreload(this);
+
+    // Load sprite textures
+    spriteManifest.forEach((entry) => {
+      this.load.image(entry.key, entry.path);
+    });
   }
 
   create() {
@@ -52,8 +58,18 @@ export default class BootScene extends Phaser.Scene {
     // Clear loading UI
     this.children.removeAll();
 
+    // Title background: hero_of_legend sprite (semi-transparent)
+    if (this.textures.exists('hero_of_legend')) {
+      const bgSprite = this.add.image(width / 2, height / 2 - 40, 'hero_of_legend');
+      bgSprite.displayWidth = 160;
+      bgSprite.displayHeight = 160;
+      bgSprite.setAlpha(0.15);
+      bgSprite.setDepth(0);
+    }
+
     // --- Menu container ---
     this.menuContainer = this.add.container(0, 0);
+    this.menuContainer.setDepth(1);
 
     const titleText = this.add.text(width / 2, height / 3, '魔王創業', {
       fontSize: '48px', color: '#e74c3c', fontFamily: 'serif'

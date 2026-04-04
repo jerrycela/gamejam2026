@@ -1,4 +1,5 @@
 import { TOP_HUD_HEIGHT, TAB_BAR_HEIGHT } from '../utils/constants.js';
+import SpriteHelper from '../utils/SpriteHelper.js';
 
 // --- Layout constants ---
 const MAP_WORLD_W  = 375;
@@ -294,11 +295,16 @@ export default class DungeonMapUI {
       fontSize: '10px', color: '#ff6600', fontFamily: 'monospace',
     }).setOrigin(1, 0);
 
-    // Monster icon (small, bottom)
-    const monStr   = (cell.monster) ? (cell.monster.typeId[0] || 'M') : '';
-    const monIcon  = scene.add.text(0, half - 10, monStr, {
-      fontSize: '10px', color: '#aaffaa', fontFamily: 'monospace',
-    }).setOrigin(0.5, 1);
+    // Monster icon (sprite, bottom of cell)
+    let monIcon;
+    if (cell.monster) {
+      const monKey = `monster_${cell.monster.typeId}`;
+      monIcon = SpriteHelper.createSprite(scene, monKey, 0, half - 14, 20);
+    } else {
+      monIcon = scene.add.text(0, half - 10, '', {
+        fontSize: '10px', color: '#aaffaa', fontFamily: 'monospace',
+      }).setOrigin(0.5, 1);
+    }
 
     cont.add([bgFill, border, labelText, trapIcon, monIcon]);
 

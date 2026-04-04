@@ -1,5 +1,15 @@
 import { EVENT_TYPES, CARD_WIDTH, CARD_HEIGHT, CARD_GAP, MATRIX_ROWS, MATRIX_COLS, TOP_HUD_HEIGHT } from '../utils/constants.js';
 
+const EVENT_ICONS = {
+  normalBattle: '\u2694\uFE0F',
+  eliteBattle:  '\u2B50',
+  bossBattle:   '\u265B',
+  activity:     '\u2604\uFE0F',
+  treasure:     '\u2728',
+  shop:         '\u2696\uFE0F',
+  finalBattle:  '\u2694\uFE0F',
+};
+
 export default class FlipMatrixUI {
   constructor(scene, gameState) {
     this.scene = scene;
@@ -46,12 +56,21 @@ export default class FlipMatrixUI {
         const labelText = isFaceUp ? eventDef.label : '?';
         const labelStyle = isFaceUp
           ? { fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif' }
-          : { fontSize: '28px', color: '#555577', fontFamily: 'serif' };
-        const label = this.scene.add.text(x, y, labelText, labelStyle).setOrigin(0.5);
+          : { fontSize: '28px', color: '#7777aa', fontFamily: 'serif' };
+        const labelY = isFaceUp ? y + 10 : y;
+        const label = this.scene.add.text(x, labelY, labelText, labelStyle).setOrigin(0.5);
 
         bg.on('pointerdown', () => this._handleTap(row, col));
 
         this.container.add([bg, label]);
+
+        if (isFaceUp) {
+          const icon = this.scene.add.text(x, y - 15, EVENT_ICONS[card.eventType] || '', {
+            fontSize: '24px',
+          }).setOrigin(0.5);
+          this.container.add(icon);
+        }
+
         rowArr.push({ bg, label, x, y });
       }
       this.cardObjects.push(rowArr);
@@ -100,11 +119,20 @@ export default class FlipMatrixUI {
         obj.bg.setStrokeStyle(2, 0xffffff);
         obj.label.setText(eventDef.label);
         obj.label.setStyle({ fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif' });
+        obj.label.setY(obj.y + 10);
         obj.bg.disableInteractive();
+
+        // Add event icon
+        const iconText = EVENT_ICONS[card.eventType] || '';
+        const icon = this.scene.add.text(obj.x, obj.y - 15, iconText, {
+          fontSize: '24px',
+        }).setOrigin(0.5);
+        icon.scaleX = 0; // Start scaled to 0 for flip animation
+        this.container.add(icon);
 
         // Phase 2: scaleX 0->1 (150ms)
         this.scene.tweens.add({
-          targets: [obj.bg, obj.label],
+          targets: [obj.bg, obj.label, icon],
           scaleX: 1,
           duration: 150,
           ease: 'Quad.easeOut',

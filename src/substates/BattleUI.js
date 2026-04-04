@@ -2,14 +2,7 @@
 // Visual layer for BattleManager: hero circles, HP bars, damage popups, result banner.
 
 import { MOVE_DURATION } from '../utils/constants.js';
-
-const HERO_COLORS = {
-  trainee_swordsman: 0x3498db,
-  light_archer:      0x2ecc71,
-  priest:            0xf39c12,
-  fire_mage:         0xe74c3c,
-  holy_knight:       0x9b59b6,
-};
+import SpriteHelper from '../utils/SpriteHelper.js';
 
 const HP_BAR_W = 30;
 const HP_BAR_H = 4;
@@ -108,11 +101,11 @@ export default class BattleUI {
       const hasSlow = hero.debuffs && hero.debuffs.some(d => d.type === 'slow');
       const hasDot  = hero.debuffs && hero.debuffs.some(d => d.type === 'dot');
       if (hasSlow) {
-        visual.circle.setStrokeStyle(2, 0x3498db);
+        visual.statusRing.setStrokeStyle(2, 0x3498db);
       } else if (hasDot) {
-        visual.circle.setStrokeStyle(2, 0x2ecc71);
+        visual.statusRing.setStrokeStyle(2, 0x2ecc71);
       } else {
-        visual.circle.setStrokeStyle(0);
+        visual.statusRing.setStrokeStyle(0);
       }
     }
   }
@@ -183,21 +176,16 @@ export default class BattleUI {
 
     const mapCont = this._dungeonMapUI.getMapWorldContainer();
     const scene = this._scene;
-    const color = HERO_COLORS[hero.typeId] || 0xffffff;
 
     // Container at portal position
     const container = scene.add.container(pos.x, pos.y);
 
-    // Circle
-    const circle = scene.add.arc(0, -4, HERO_RADIUS, 0, 360, false, color, 1);
+    // Hero sprite (or fallback circle)
+    const spriteKey = hero.typeId.startsWith('hero_') ? hero.typeId : `hero_${hero.typeId}`;
+    const sprite = SpriteHelper.createSprite(scene, spriteKey, 0, -4, 24);
 
-    // Letter (first char of typeId)
-    const letter = scene.add.text(0, -4, (hero.typeId[0] || '?').toUpperCase(), {
-      fontSize: '12px',
-      color: '#ffffff',
-      fontFamily: 'monospace',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+    // Status ring for debuff indicators (transparent by default)
+    const statusRing = scene.add.arc(0, -4, 14, 0, 360, false, 0x000000, 0);
 
     // HP bar background (gray)
     const hpBg = scene.add.rectangle(0, HERO_RADIUS + 4, HP_BAR_W, HP_BAR_H, 0x444444);
@@ -211,13 +199,13 @@ export default class BattleUI {
     );
     hpFill.setOrigin(0, 0);
 
-    container.add([hpBg, hpFill, circle, letter]);
+    container.add([hpBg, hpFill, sprite, statusRing]);
     mapCont.add(container);
 
     this._heroVisuals.set(hero.instanceId, {
       container,
-      circle,
-      letter,
+      sprite,
+      statusRing,
       hpBg,
       hpFill,
       lerpFrom: null,
@@ -510,7 +498,7 @@ export default class BattleUI {
 
     const visual = this._heroVisuals.get(target.instanceId);
     if (visual) {
-      this._spawnDamagePopup(visual.sprite.x, visual.sprite.y - 30, `護盾+${amount}`, '#3498db');
+      this._spawnDamagePopup(visual.container.x, visual.container.y - 30, `護盾+${amount}`, '#3498db');
     }
   }
 

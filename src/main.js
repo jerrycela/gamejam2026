@@ -8,6 +8,8 @@ const config = {
   parent: 'game-container',
   width: 375,
   height: 812,
+  pixelArt: true,
+  roundPixels: true,
   backgroundColor: '#1a1a2e',
   scale: {
     mode: Phaser.Scale.FIT,

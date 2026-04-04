@@ -1,5 +1,6 @@
 import { rollStarRating } from '../utils/constants.js';
 import { buildUnlockedPool } from '../utils/buildUnlockedPool.js';
+import SpriteHelper from '../utils/SpriteHelper.js';
 
 export default class CardPickUI {
   constructor(scene, gameState) {
@@ -76,6 +77,15 @@ export default class CardPickUI {
       const starText = this.scene.add.text(x, centerY + 30, '★'.repeat(option.starRating), {
         fontSize: '16px', color: '#f1c40f', fontFamily: 'serif'
       }).setOrigin(0.5);
+
+      // Add trap sprite icon if available
+      if (option.type === 'trap') {
+        const trapDef = dataManager.getTrap(option.id);
+        if (trapDef && trapDef.spriteKey) {
+          const icon = SpriteHelper.createSprite(this.scene, trapDef.spriteKey, x, centerY - 55, 32);
+          this.container.add(icon);
+        }
+      }
 
       cardBg.on('pointerdown', () => {
         this.gameState.hand.push(option);
