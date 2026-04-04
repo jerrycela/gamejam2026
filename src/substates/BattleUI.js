@@ -74,6 +74,9 @@ export default class BattleUI {
     this._bind('heroShield',      (data) => this._onHeroShield(data, session));
     this._bind('goldSteal',       (data) => this._onGoldSteal(data, session));
     this._bind('goldReturn',      (data) => this._onGoldReturn(data, session));
+    this._bind('bossPhaseChange', (data) => this._onBossPhaseChange(data, session));
+    this._bind('bossSummon',      (data) => this._onBossSummon(data, session));
+    this._bind('summonAttack',    (data) => this._onSummonAttack(data, session));
   }
 
   update(dt) {
@@ -496,6 +499,79 @@ export default class BattleUI {
   _onBossSkillEnd(_data, session) {
     if (this._sessionId !== session) return;
     // 護盾結束：未來可在此加視覺回饋
+  }
+
+  _onBossPhaseChange({ phase }, session) {
+    if (this._sessionId !== session) return;
+
+    const scene = this._scene;
+    const { width, height } = scene.scale;
+
+    // Full-screen overlay + warning text
+    const overlay = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6)
+      .setDepth(2200);
+    const text = scene.add.text(width / 2, height / 2, '魔王狂暴化！', {
+      fontSize: '32px',
+      color: '#ff2222',
+      fontFamily: 'serif',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(2201);
+    this._transients.push(overlay, text);
+
+    // Fade out after 1.5s
+    const timer = scene.time.delayedCall(1500, () => {
+      if (this._sessionId !== session) return;
+      scene.tweens.add({
+        targets: [overlay, text],
+        alpha: 0,
+        duration: 300,
+        onComplete: () => { overlay.destroy(); text.destroy(); },
+      });
+    });
+    this._timers.push(timer);
+
+    // Tint boss area: change heart cell highlight to red
+    const heartCell = this._gameState.dungeonGrid.find(c => c.type === 'heart');
+    if (heartCell) {
+      this._dungeonMapUI.setCellHighlight(heartCell.id, 0xff2222);
+    }
+  }
+
+  _onBossSummon({ skillName }, session) {
+    if (this._sessionId !== session) return;
+    if (this._battleManager.getSpeedMultiplier() >= 10) return;
+
+    const heartCell = this._gameState.dungeonGrid.find(c => c.type === 'heart');
+    if (!heartCell) return;
+
+    const scene = this._scene;
+    const text = scene.add.text(heartCell.position.x, heartCell.position.y - 40, skillName, {
+      fontSize: '18px',
+      color: '#9b59b6',
+      fontFamily: 'monospace',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(2000);
+    this._dungeonMapUI.getMapWorldContainer().add(text);
+    this._transients.push(text);
+
+    scene.tweens.add({
+      targets: text,
+      y: text.y - 30,
+      alpha: 0,
+      duration: 1200,
+      ease: 'Power2',
+      onComplete: () => text.destroy(),
+    });
+  }
+
+  _onSummonAttack({ targetId, damage }, session) {
+    if (this._sessionId !== session) return;
+    if (this._battleManager.getSpeedMultiplier() >= 10) return;
+
+    const visual = this._heroVisuals.get(targetId);
+    if (visual) {
+      this._spawnDamagePopup(visual.container.x, visual.container.y - 20, damage, '#9b59b6');
+    }
   }
 
   _onHeroHeal({ target: _target, amount, cellId }, session) {
