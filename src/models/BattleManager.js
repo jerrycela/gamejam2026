@@ -178,9 +178,10 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
         const bossConfig = this._dataManager.getBossConfig();
         const skillTimers = {};
         for (const skill of bossConfig.skills) {
-          skillTimers[skill.id] = skill.cd * 0.5 * 1000; // 50% 起始延遲，不會一開場就放
+          skillTimers[skill.id] = skill.cd * 0.5 * 1000; // 50% initial delay
         }
         const shieldSkill = bossConfig.skills.find(s => s.id === 'dark_shield');
+        const phase1 = bossConfig.phases ? bossConfig.phases[0] : null;
         this._bossContext = {
           attackTimer: 0,
           targetQueue: [],
@@ -189,6 +190,12 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
           shieldTimer: 0,
           attackCd: bossConfig.attackCd,
           shieldReduction: shieldSkill ? shieldSkill.damageReduction : 0,
+          // Phase 2 fields
+          currentPhase: 1,
+          enabledSkillIds: phase1 ? phase1.enabledSkillIds : bossConfig.skills.map(s => s.id),
+          atkMultiplier: 1.0,
+          cdMultiplier: 1.0,
+          summons: [],
         };
       }
       this._bossContext.targetQueue.push(hero.instanceId);
