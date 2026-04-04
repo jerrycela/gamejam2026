@@ -10,6 +10,24 @@ const spriteManifest = [
   { key: 'hero_fire_mage',          path: 'sprites/hero_fire_mage.png' },
   { key: 'hero_holy_knight',        path: 'sprites/hero_holy_knight.png' },
   { key: 'hero_of_legend',          path: 'sprites/hero_of_legend.png' },
+  // Map visual assets
+  { key: 'map_bg',           path: 'sprites/map_bg.png' },
+  { key: 'cell_hatchery',    path: 'sprites/cell_hatchery.png' },
+  { key: 'cell_lab',         path: 'sprites/cell_lab.png' },
+  { key: 'cell_training',    path: 'sprites/cell_training.png' },
+  { key: 'cell_dungeon',     path: 'sprites/cell_dungeon.png' },
+  { key: 'cell_treasury',    path: 'sprites/cell_treasury.png' },
+  { key: 'cell_portal',      path: 'sprites/cell_portal.png' },
+  { key: 'cell_heart',       path: 'sprites/cell_heart.png' },
+  { key: 'cell_empty',       path: 'sprites/cell_empty.png' },
+  { key: 'icon_hatchery',    path: 'sprites/icon_hatchery.png' },
+  { key: 'icon_lab',         path: 'sprites/icon_lab.png' },
+  { key: 'icon_training',    path: 'sprites/icon_training.png' },
+  { key: 'icon_dungeon',     path: 'sprites/icon_dungeon.png' },
+  { key: 'icon_treasury',    path: 'sprites/icon_treasury.png' },
+  { key: 'path_chain',       path: 'sprites/path_chain.png' },
+  { key: 'path_arrow',       path: 'sprites/path_arrow.png' },
+  { key: 'path_diamond',     path: 'sprites/path_diamond.png' },
 ];
 
 export default spriteManifest;
