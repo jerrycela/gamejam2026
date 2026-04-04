@@ -207,6 +207,8 @@ export default class DungeonMapUI {
     // The bgTexture placeholder (will be filled in _rebuildBackground)
     this._bgTexture = scene.add.renderTexture(0, 0, MAP_WORLD_W, MAP_WORLD_H);
     this._mapWorldContainer.add(this._bgTexture);
+    this._forecastGfx = scene.add.graphics();
+    this._mapWorldContainer.add(this._forecastGfx);
 
     // cellContainers array — rebuilt on each refresh()
     this._cellContainers = [];
@@ -238,20 +240,28 @@ export default class DungeonMapUI {
 
   _rebuildBackground() {
     const scene = this.scene;
-    const rt    = this._bgTexture;
-
-    // Clear previous content
+    const rt = this._bgTexture;
     rt.clear();
 
-    // Parchment background
+    // 1. Parchment base
     const bgGfx = scene.add.graphics();
     bgGfx.fillStyle(0x2d1b0e, 1);
     bgGfx.fillRect(0, 0, MAP_WORLD_W, MAP_WORLD_H);
+
+    // Noise overlay — subtle darker spots for texture
+    bgGfx.fillStyle(0x1a1206, 0.3);
+    for (let ny = 0; ny < MAP_WORLD_H; ny += 12) {
+      for (let nx = 0; nx < MAP_WORLD_W; nx += 12) {
+        if (Math.random() < 0.3) {
+          bgGfx.fillRect(nx, ny, 8, 8);
+        }
+      }
+    }
     rt.draw(bgGfx, 0, 0);
     bgGfx.destroy();
 
-    // Draw all path lines with a single Graphics object
-    const grid    = this.gameState.dungeonGrid;
+    // 2. Path lines + decorations
+    const grid = this.gameState.dungeonGrid;
     const cellMap = new Map(grid.map(c => [c.id, c]));
     const pathGfx = scene.add.graphics();
 
@@ -259,36 +269,126 @@ export default class DungeonMapUI {
       for (const targetId of cell.connections) {
         const target = cellMap.get(targetId);
         if (!target) continue;
-        const posA = cell.position;
-        const posB = target.position;
 
-        // Line segment
-        pathGfx.lineStyle(3, 0x8B4513, 0.5);
+        // Use visualPos for rendering
+        const ax = cell.visualPos?.x ?? cell.position.x;
+        const ay = cell.visualPos?.y ?? cell.position.y;
+        const bx = target.visualPos?.x ?? target.position.x;
+        const by = target.visualPos?.y ?? target.position.y;
+
+        // Main path line
+        pathGfx.lineStyle(4, 0x8B4513, 0.8);
         pathGfx.beginPath();
-        pathGfx.moveTo(posA.x, posA.y);
-        pathGfx.lineTo(posB.x, posB.y);
+        pathGfx.moveTo(ax, ay);
+        pathGfx.lineTo(bx, by);
         pathGfx.strokePath();
 
-        // Dots along the path every 20 px
-        const dx   = posB.x - posA.x;
-        const dy   = posB.y - posA.y;
+        // Chain link stamps along path
+        const dx = bx - ax;
+        const dy = by - ay;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const steps = Math.floor(dist / 20);
+        const steps = Math.floor(dist / 30);
 
-        pathGfx.fillStyle(0x8B4513, 0.6);
         for (let s = 1; s < steps; s++) {
           const t = s / steps;
-          pathGfx.fillCircle(posA.x + dx * t, posA.y + dy * t, 3);
+          const cx = ax + dx * t;
+          const cy = ay + dy * t;
+
+          // Skip near endpoints (within 5px of cell center)
+          const distFromStart = dist * t;
+          const distFromEnd = dist * (1 - t);
+          if (distFromStart < 5 || distFromEnd < 5) continue;
+
+          // Chain ring: stroked circle
+          pathGfx.lineStyle(1.5, 0x8B4513, 0.9);
+          pathGfx.strokeCircle(cx, cy, 4);
         }
 
-        // Arrowhead circle at downstream end
-        pathGfx.fillStyle(0x8B4513, 0.8);
-        pathGfx.fillCircle(posB.x, posB.y, 5);
+        // Arrow at downstream end
+        const angle = Math.atan2(dy, dx);
+        const arrowDist = 12;
+        const arrowSize = 6;
+        const arrowT = Math.max(0, 1 - arrowDist / dist);
+        const arrowX = ax + dx * arrowT;
+        const arrowY = ay + dy * arrowT;
+
+        pathGfx.fillStyle(0x8B4513, 0.9);
+        pathGfx.fillTriangle(
+          arrowX + Math.cos(angle) * arrowSize,
+          arrowY + Math.sin(angle) * arrowSize,
+          arrowX + Math.cos(angle + 2.5) * arrowSize * 0.6,
+          arrowY + Math.sin(angle + 2.5) * arrowSize * 0.6,
+          arrowX + Math.cos(angle - 2.5) * arrowSize * 0.6,
+          arrowY + Math.sin(angle - 2.5) * arrowSize * 0.6,
+        );
+      }
+    }
+
+    // 3. Fork/Merge diamond markers
+    for (const cell of grid) {
+      if (cell.connections.length > 1 || this._getIncomingCount(cell.id, grid) > 1) {
+        const cx = cell.visualPos?.x ?? cell.position.x;
+        const cy = cell.visualPos?.y ?? cell.position.y;
+        pathGfx.fillStyle(0xf0c040, 0.7);
+        pathGfx.fillPoints([
+          { x: cx, y: cy - 8 },
+          { x: cx + 6, y: cy },
+          { x: cx, y: cy + 8 },
+          { x: cx - 6, y: cy },
+        ], true);
       }
     }
 
     rt.draw(pathGfx, 0, 0);
     pathGfx.destroy();
+  }
+
+  /** Count incoming connections to a cell. */
+  _getIncomingCount(cellId, grid) {
+    let count = 0;
+    for (const c of grid) {
+      if (c.connections.includes(cellId)) count++;
+    }
+    return count;
+  }
+
+  /**
+   * Draw the next wave's predicted route on the dynamic forecast layer.
+   * @param {string[]} route - Array of cellIds the hero will traverse
+   */
+  drawForecastRoute(route) {
+    this._forecastGfx.clear();
+    if (!route || route.length < 2) return;
+
+    this._forecastGfx.lineStyle(3, 0x4a9eff, 0.6);
+
+    for (let i = 0; i < route.length - 1; i++) {
+      const from = this.getCellPosition(route[i]);
+      const to = this.getCellPosition(route[i + 1]);
+      if (!from || !to) continue;
+
+      // Dashed line effect
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const dashLen = 8;
+      const gapLen = 6;
+      const steps = Math.floor(dist / (dashLen + gapLen));
+
+      for (let s = 0; s < steps; s++) {
+        const t0 = s * (dashLen + gapLen) / dist;
+        const t1 = Math.min(1, (s * (dashLen + gapLen) + dashLen) / dist);
+        this._forecastGfx.beginPath();
+        this._forecastGfx.moveTo(from.x + dx * t0, from.y + dy * t0);
+        this._forecastGfx.lineTo(from.x + dx * t1, from.y + dy * t1);
+        this._forecastGfx.strokePath();
+      }
+    }
+  }
+
+  /** Clear the forecast overlay. */
+  clearForecastRoute() {
+    this._forecastGfx.clear();
   }
 
   // ---------------------------------------------------------------------------
