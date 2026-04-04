@@ -700,6 +700,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     this._restoreMonsters();
     this._combatContexts.clear();
     this._cellCombatOwner.clear();
+    this._bossContext = null;
     this.emit('battleEnd', {
       result,
       kills: this._gameState.killCount - this._preKillCount,
