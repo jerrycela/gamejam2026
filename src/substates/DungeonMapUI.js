@@ -3,9 +3,9 @@ import SpriteHelper from '../utils/SpriteHelper.js';
 
 // --- Layout constants ---
 const MAP_WORLD_W  = 375;
-const MAP_WORLD_H  = 1200;
+const MAP_WORLD_H  = 860;
 const HAND_H       = 64;
-const CELL_SIZE    = 64;
+const CELL_SIZE    = 80;
 const CELL_HIT     = 80;
 const PAN_THRESHOLD  = 8;
 const INERTIA_DECAY  = 0.92;
@@ -61,8 +61,17 @@ export default class DungeonMapUI {
   /** Return the map world container for adding battle visuals. */
   getMapWorldContainer() { return this._mapWorldContainer; }
 
-  /** Get cell world position by cellId. Returns {x, y} or null. */
+  /** Get cell visual position by cellId (for rendering & hero movement). */
   getCellPosition(cellId) {
+    const cell = this.gameState.getCell(cellId);
+    if (!cell) return null;
+    return cell.visualPos
+      ? { x: cell.visualPos.x, y: cell.visualPos.y }
+      : { x: cell.position.x, y: cell.position.y };
+  }
+
+  /** Get cell logical position by cellId (for hit-test). */
+  getCellLogicalPosition(cellId) {
     const cell = this.gameState.getCell(cellId);
     return cell ? { x: cell.position.x, y: cell.position.y } : null;
   }
@@ -107,7 +116,8 @@ export default class DungeonMapUI {
       const monsterDef = dataManager.getMonster(cell.monster.typeId);
       if (!monsterDef || !monsterDef.type || !monsterDef.type.includes(roomDef.buffTarget)) continue;
       // Find cell visual position from cell data
-      const { x, y } = cell.position;
+      const vp = cell.visualPos ?? cell.position;
+      const { x, y } = vp;
       const color = BUFF_COLORS[cell.room.typeId] || 0xFFFFFF;
       const dot = this.scene.add.circle(x + 20, y - 20, 5, color, 0.9);
       dot.setDepth(10);
@@ -307,7 +317,8 @@ export default class DungeonMapUI {
    */
   _buildCellContainer(cell) {
     const scene = this.scene;
-    const { x, y } = cell.position;
+    const vp = cell.visualPos ?? cell.position;
+    const { x, y } = vp;
     const half    = CELL_SIZE / 2;
 
     const cont = scene.add.container(x, y);
@@ -776,7 +787,8 @@ export default class DungeonMapUI {
   /** Show an inline confirm text "替換？" with [Yes][No] over the cell. */
   _showReplaceConfirm(cell, card, handIndex) {
     const scene  = this.scene;
-    const { x, y } = cell.position;
+    const vp = cell.visualPos ?? cell.position;
+    const { x, y } = vp;
 
     // Build a small overlay inside mapWorldContainer so it scrolls with the map
     const overlay = scene.add.container(x, y - CELL_SIZE);
@@ -839,7 +851,8 @@ export default class DungeonMapUI {
 
   _showMonsterSwapConfirm(cell, monsterId, typeId) {
     const scene  = this.scene;
-    const { x, y } = cell.position;
+    const vp = cell.visualPos ?? cell.position;
+    const { x, y } = vp;
 
     const overlay = scene.add.container(x, y - CELL_SIZE);
 
