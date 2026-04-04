@@ -1,4 +1,5 @@
 .superpowers/
+.worktrees/
 CLAUDE.local.md
 reference/*.mp4
 *.pyc
