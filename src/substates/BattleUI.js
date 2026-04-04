@@ -77,6 +77,12 @@ export default class BattleUI {
     this._bind('bossPhaseChange', (data) => this._onBossPhaseChange(data, session));
     this._bind('bossSummon',      (data) => this._onBossSummon(data, session));
     this._bind('summonAttack',    (data) => this._onSummonAttack(data, session));
+
+    // Draw forecast route for first hero's path
+    const routes = this._battleManager.getHeroRoutes();
+    if (routes.length > 0) {
+      this._dungeonMapUI.drawForecastRoute(routes[0]);
+    }
   }
 
   update(dt) {
@@ -411,6 +417,7 @@ export default class BattleUI {
 
   _onBattleEnd({ result, kills, goldEarned }, session) {
     if (this._sessionId !== session) return;
+    this._dungeonMapUI.clearForecastRoute();
 
     const scene = this._scene;
     const { width, height } = scene.scale;

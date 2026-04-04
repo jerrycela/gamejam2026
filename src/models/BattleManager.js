@@ -24,6 +24,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     this._preKillCount = 0;
     this._preGold = 0;
     this._portalCellId = null;
+    this._battleCount = 0;
   }
 
   // --- Public API ---
@@ -32,6 +33,8 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
   getHeroes() { return this._heroes; }
   setSpeedMultiplier(x) { this._speedMultiplier = x; }
   getSpeedMultiplier() { return this._speedMultiplier; }
+  /** Get all heroes' pre-computed routes (for forecast display). */
+  getHeroRoutes() { return this._heroes.map(h => h.route).filter(Boolean); }
   triggerBossSkill() { /* stub for A2 */ }
 
   /** Force-end the current battle (for debug / UI override). */
@@ -44,6 +47,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
    * @param {'normalBattle'|'eliteBattle'|'bossBattle'|'finalBattle'} eventType
    */
   start(eventType) {
+    this._battleCount++;
     this._heroes = this._generateHeroes(eventType);
     this._computeDistToHeart();
     this._combatContexts = new Map();
@@ -123,6 +127,12 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     if (hero.waveDelay <= 0) {
       hero.state = 'moving';
       hero.currentCellId = this._portalCellId;
+      // Assign pre-computed route if not already set
+      if (!hero.route) {
+        const heroIndex = hero.spawnIndex ?? this._heroes.indexOf(hero);
+        hero.route = this._computeHeroRoute(heroIndex);
+        hero.routeIndex = 0;
+      }
       this.emit('heroSpawn', { hero });
       this._gameState.recordHeroSeen(hero.typeId);
       this._assignNextMove(hero);
@@ -872,7 +882,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
    * @returns {boolean} true if hero has a valid next cell
    */
   _assignNextMove(hero) {
-    hero.targetCellId = this._pickNextCell(hero.currentCellId);
+    hero.targetCellId = this._pickNextCell(hero);
     if (hero.targetCellId) {
       this.emit('heroMove', { hero, fromCellId: hero.currentCellId, toCellId: hero.targetCellId });
       return true;
@@ -882,18 +892,51 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
   }
 
   /**
-   * Pick the next cell towards the heart (lowest distToHeart).
+   * Pick the next cell from the hero's pre-computed route.
    */
-  _pickNextCell(currentCellId) {
-    const cell = this._gameState.getCell(currentCellId);
-    if (!cell || !cell.connections || !cell.connections.length) return null;
+  _pickNextCell(hero) {
+    if (hero.route && hero.routeIndex < hero.route.length - 1) {
+      hero.routeIndex++;
+      return hero.route[hero.routeIndex];
+    }
+    return null;
+  }
 
-    return cell.connections.slice()
-      .sort((a, b) => {
-        const da = this._distToHeart.get(a) ?? Infinity;
-        const db = this._distToHeart.get(b) ?? Infinity;
-        return (da - db) || a.localeCompare(b);
-      })[0];
+  /**
+   * Pre-compute a full route from portal to heart for a hero.
+   * At fork nodes (cells with >1 connection), alternate based on hero index + battle count.
+   * @param {number} heroIndex
+   * @returns {string[]} Array of cellIds from portal to heart
+   */
+  _computeHeroRoute(heroIndex) {
+    const grid = this._gameState.dungeonGrid;
+    const portalCell = grid.find(c => c.type === 'portal');
+    if (!portalCell) return [];
+
+    const cellMap = new Map(grid.map(c => [c.id, c]));
+    const route = [portalCell.id];
+    let currentId = portalCell.id;
+
+    const MAX_STEPS = 20;
+    for (let step = 0; step < MAX_STEPS; step++) {
+      const cell = cellMap.get(currentId);
+      if (!cell || cell.type === 'heart') break;
+      if (!cell.connections || cell.connections.length === 0) break;
+
+      let nextId;
+      if (cell.connections.length === 1) {
+        nextId = cell.connections[0];
+      } else {
+        // Fork: alternate based on hero index + battle count for distribution
+        const branchIndex = (heroIndex + this._battleCount) % cell.connections.length;
+        nextId = cell.connections[branchIndex];
+      }
+
+      route.push(nextId);
+      currentId = nextId;
+    }
+
+    return route;
   }
 
   // --- Hero generation ---
