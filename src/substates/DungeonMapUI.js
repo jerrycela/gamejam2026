@@ -1017,10 +1017,27 @@ export default class DungeonMapUI {
   // Selection clear
   // ---------------------------------------------------------------------------
 
-  _clearSelection() {
+  /** Reset selection state to sentinel (pure state, no visuals). */
+  _resetSelectionState() {
     this.selectionState = { mode: 'none', handIndex: -1, monsterId: null };
+  }
+
+  /** Stop pulse tweens and hide all highlight borders (pure visual cleanup). */
+  _clearPlacementHighlights() {
     this._stopPulseTweens();
-    // Restore cell visuals (remove pulse tint)
+    for (const cont of this._cellContainers) {
+      const hb = cont.getData('highlightBorder');
+      if (hb) {
+        hb.setVisible(false);
+        hb.setAlpha(1);
+      }
+    }
+  }
+
+  /** Full selection clear: reset state + clear highlights + rebuild everything. */
+  _clearSelection() {
+    this._resetSelectionState();
+    this._clearPlacementHighlights();
     this._rebuildCells();
     this._rebuildHand();
   }
