@@ -28,6 +28,14 @@ const spriteManifest = [
   { key: 'path_chain',       path: 'sprites/path_chain.png' },
   { key: 'path_arrow',       path: 'sprites/path_arrow.png' },
   { key: 'path_diamond',     path: 'sprites/path_diamond.png' },
+  // Monster idle spritesheets (P026)
+  { key: 'monster_skeleton_knight_idle', path: 'sprites/monster_skeleton_knight_idle.png', type: 'spritesheet', frameWidth: 64, frameHeight: 64 },
+  { key: 'monster_goblin_idle',          path: 'sprites/monster_goblin_idle.png',          type: 'spritesheet', frameWidth: 64, frameHeight: 64 },
+  { key: 'monster_bat_succubus_idle',    path: 'sprites/monster_bat_succubus_idle.png',    type: 'spritesheet', frameWidth: 64, frameHeight: 64 },
+  { key: 'monster_rage_demon_idle',      path: 'sprites/monster_rage_demon_idle.png',      type: 'spritesheet', frameWidth: 64, frameHeight: 64 },
+  { key: 'monster_frost_witch_idle',     path: 'sprites/monster_frost_witch_idle.png',     type: 'spritesheet', frameWidth: 64, frameHeight: 64 },
+  // Trap icon (P026)
+  { key: 'icon_trap', path: 'sprites/icon_trap.png' },
 ];
 
 export default spriteManifest;

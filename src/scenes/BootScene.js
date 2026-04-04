@@ -34,14 +34,35 @@ export default class BootScene extends Phaser.Scene {
     this.dataManager = new DataManager();
     this.dataManager.registerPreload(this);
 
-    // Load sprite textures
+    // Load sprite textures (image or spritesheet)
     spriteManifest.forEach((entry) => {
-      this.load.image(entry.key, entry.path);
+      if (entry.type === 'spritesheet') {
+        this.load.spritesheet(entry.key, entry.path, {
+          frameWidth: entry.frameWidth,
+          frameHeight: entry.frameHeight,
+        });
+      } else {
+        this.load.image(entry.key, entry.path);
+      }
     });
   }
 
   create() {
     const { width, height } = this.scale;
+
+    // Register idle animations from spritesheet manifest entries (P026)
+    spriteManifest.forEach((entry) => {
+      if (entry.type === 'spritesheet' && entry.key.endsWith('_idle')) {
+        if (!this.anims.exists(entry.key)) {
+          this.anims.create({
+            key: entry.key,
+            frames: this.anims.generateFrameNumbers(entry.key, { start: 0, end: 3 }),
+            frameRate: 4,
+            repeat: -1,
+          });
+        }
+      }
+    });
 
     // Initialize DataManager from cache
     this.dataManager.initialize(this);
