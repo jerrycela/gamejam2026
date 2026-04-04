@@ -50,15 +50,18 @@ export default class BootScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
 
-    // Register idle animations from spritesheet manifest entries (P026)
+    // Register animations from spritesheet manifest entries (P026)
     spriteManifest.forEach((entry) => {
-      if (entry.type === 'spritesheet' && entry.key.endsWith('_idle')) {
+      if (entry.type === 'spritesheet' && entry.animation) {
         if (!this.anims.exists(entry.key)) {
           this.anims.create({
             key: entry.key,
-            frames: this.anims.generateFrameNumbers(entry.key, { start: 0, end: 3 }),
-            frameRate: 4,
-            repeat: -1,
+            frames: this.anims.generateFrameNumbers(entry.key, {
+              start: entry.animation.start,
+              end: entry.animation.end,
+            }),
+            frameRate: entry.animation.frameRate,
+            repeat: entry.animation.repeat,
           });
         }
       }

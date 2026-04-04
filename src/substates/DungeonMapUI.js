@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { TOP_HUD_HEIGHT, TAB_BAR_HEIGHT } from '../utils/constants.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
+import spriteManifest from '../data/spriteManifest.js';
 
 // --- Layout constants ---
 const MAP_WORLD_H  = 860;
@@ -10,6 +11,19 @@ const CELL_HIT     = 80;
 const PAN_THRESHOLD  = 8;
 const INERTIA_DECAY  = 0.92;
 const INERTIA_STOP   = 0.5;
+
+// --- Monster / icon visual constants (P026 + 009 visual fix) ---
+const MONSTER_SIZE      = 58;
+const PEDESTAL_RX       = 25;
+const PEDESTAL_RY       = 12;
+const PEDESTAL_Y        = 8;
+const PEDESTAL_COLOR    = 0x1a1a1a;
+const PEDESTAL_ALPHA    = 0.5;
+const ICON_SIZE         = 18;
+const ICON_BG_SIZE      = 22;
+const ICON_BG_RADIUS    = 6;
+const ICON_BG_COLOR     = 0x000000;
+const ICON_BG_ALPHA     = 0.7;
 
 // --- Deploy / remove animation constants (P026) ---
 const DEPLOY_DROP_Y     = -30;
@@ -45,6 +59,10 @@ export default class DungeonMapUI {
 
     // Pulse tweens for valid placement cells
     this._pulseTweens = [];
+
+    // Animation safety (009)
+    this._isAnimating = false;
+    this._activeAnimTweens = [];
 
     // Room buff indicator dots (shown during battle)
     this._buffIndicators = [];
@@ -178,6 +196,7 @@ export default class DungeonMapUI {
    * @param {string} instanceId
    */
   enterMonsterPlacement(instanceId) {
+    if (this._isAnimating) return;
     this._clearSelection();
     this.selectionState = { mode: 'monster', handIndex: -1, monsterId: instanceId };
     this._highlightValidCells();
@@ -189,6 +208,7 @@ export default class DungeonMapUI {
    */
   destroy() {
     this.scene.events.off('update', this._onUpdate, this);
+    this._killAnimTweens();
     this._stopPulseTweens();
     // Remove scene-level input listeners
     if (this._handResetHandler) {
@@ -405,6 +425,8 @@ export default class DungeonMapUI {
   // ---------------------------------------------------------------------------
 
   _rebuildCells() {
+    // Kill active animation tweens before destroying containers (B3)
+    this._killAnimTweens();
     // Remove previous cell containers
     for (const c of this._cellContainers) {
       this._cellLayerContainer.remove(c, true);
@@ -463,38 +485,54 @@ export default class DungeonMapUI {
     highlightBorder.setVisible(false);
     cont.add(highlightBorder);
 
-    // Room icon sprite — left-bottom corner, small (P026: room is now background context)
+    // Monster pedestal + sprite — centered, idle animation (009: visual primary)
+    if (cell.monster) {
+      const pedestal = scene.add.graphics();
+      pedestal.fillStyle(PEDESTAL_COLOR, PEDESTAL_ALPHA);
+      pedestal.fillEllipse(0, PEDESTAL_Y, PEDESTAL_RX * 2, PEDESTAL_RY * 2);
+      cont.add(pedestal);
+      cont.setData('pedestal', pedestal);
+
+      const idleKey = `monster_${cell.monster.typeId}_idle`;
+      let monSprite;
+      if (scene.anims.exists(idleKey)) {
+        monSprite = scene.add.sprite(0, 0, idleKey).setOrigin(0.5);
+        monSprite.displayWidth = MONSTER_SIZE;
+        monSprite.displayHeight = MONSTER_SIZE;
+        const entry = spriteManifest.find(e => e.key === idleKey);
+        const endFrame = entry?.animation?.end ?? 3;
+        const startFrame = Phaser.Math.Between(entry?.animation?.start ?? 0, endFrame);
+        monSprite.play({ key: idleKey, startFrame });
+      } else {
+        const staticKey = `monster_${cell.monster.typeId}`;
+        monSprite = SpriteHelper.createSprite(scene, staticKey, 0, 0, MONSTER_SIZE);
+      }
+      cont.add(monSprite);
+      cont.setData('monsterSprite', monSprite);
+    }
+
+    // Room icon + backing — left-bottom corner (009: with backing for contrast)
     if (cell.room) {
       const iconKey = this._getRoomIconKey(cell.room.typeId);
       if (iconKey) {
-        const iconSprite = SpriteHelper.createSprite(scene, iconKey, -half + 10, half - 10, 10);
+        const iconBg = scene.add.graphics();
+        iconBg.fillStyle(ICON_BG_COLOR, ICON_BG_ALPHA);
+        iconBg.fillRoundedRect(-38, 16, ICON_BG_SIZE, ICON_BG_SIZE, ICON_BG_RADIUS);
+        cont.add(iconBg);
+        const iconSprite = SpriteHelper.createSprite(scene, iconKey, -27, 27, ICON_SIZE);
         cont.add(iconSprite);
         cont.setData('roomIcon', iconSprite);
       }
     }
 
-    // Trap icon — top-right corner, pixel art (P026: replaces emoji)
+    // Trap icon + backing — top-right corner (009: with backing for contrast)
     if (cell.trap) {
-      const trapIcon = SpriteHelper.createSprite(scene, 'icon_trap', half - 8, -half + 8, 12);
+      const trapBg = scene.add.graphics();
+      trapBg.fillStyle(ICON_BG_COLOR, ICON_BG_ALPHA);
+      trapBg.fillRoundedRect(16, -38, ICON_BG_SIZE, ICON_BG_SIZE, ICON_BG_RADIUS);
+      cont.add(trapBg);
+      const trapIcon = SpriteHelper.createSprite(scene, 'icon_trap', 27, -27, ICON_SIZE);
       cont.add(trapIcon);
-    }
-
-    // Monster sprite — centered, idle animation (P026: primary visual)
-    if (cell.monster) {
-      const idleKey = `monster_${cell.monster.typeId}_idle`;
-      let monSprite;
-      if (scene.anims.exists(idleKey)) {
-        monSprite = scene.add.sprite(0, 0, idleKey).setOrigin(0.5);
-        monSprite.displayWidth = 40;
-        monSprite.displayHeight = 40;
-        const startFrame = Phaser.Math.Between(0, 3);
-        monSprite.play({ key: idleKey, startFrame });
-      } else {
-        const staticKey = `monster_${cell.monster.typeId}`;
-        monSprite = SpriteHelper.createSprite(scene, staticKey, 0, 0, 40);
-      }
-      cont.add(monSprite);
-      cont.setData('monsterSprite', monSprite);
     }
 
     // Store references
@@ -754,7 +792,7 @@ export default class DungeonMapUI {
    * Manually hit-tests pointer position against cell containers in map world space.
    */
   _handleMapTap(pointer) {
-    if (this._battleMode) return;
+    if (this._battleMode || this._isAnimating) return;
     // Convert screen pointer to map world coordinates
     const worldX = pointer.x;
     const worldY = pointer.y - (TOP_HUD_HEIGHT + this._scrollY);
@@ -797,7 +835,7 @@ export default class DungeonMapUI {
   // ---------------------------------------------------------------------------
 
   _onCardTap(handIndex) {
-    if (this._battleMode) return;
+    if (this._battleMode || this._isAnimating) return;
     if (this.selectionState.mode === 'card') {
       if (this.selectionState.handIndex === handIndex) {
         // Re-tap selected card → cancel
@@ -1015,31 +1053,37 @@ export default class DungeonMapUI {
       event.stopPropagation();
       this._mapWorldContainer.remove(overlay, true);
 
-      // P026: animate old monster out, then deploy new one
+      // B1: commit state FIRST, then animate (state survives tween kill)
+      this.gameState.setCellMonster(cell.id, monsterId, typeId);
+      this._resetSelectionState();
+      this._clearPlacementHighlights();
+
       const cellCont = this._cellContainers.find(c => c.getData('cellId') === cell.id);
       const oldMonsterSprite = cellCont ? cellCont.getData('monsterSprite') : null;
+      const oldPedestal = cellCont ? cellCont.getData('pedestal') : null;
 
       this._playRemoveAnimation(oldMonsterSprite, () => {
-        this.gameState.setCellMonster(cell.id, monsterId, typeId);
-        this._resetSelectionState();
-        this._clearPlacementHighlights();
-
+        if (oldPedestal) oldPedestal.destroy();
         if (cellCont) {
           cellCont.setData('monsterSprite', null);
+          cellCont.setData('pedestal', null);
           this._playDeployAnimation(cellCont, cell, typeId, () => {
             this._rebuildHand();
           });
         } else {
+          this._isAnimating = false;
           this._rebuildCells();
           this._rebuildHand();
         }
       });
     });
 
+    // B4: noBtn uses lightweight reset instead of full _clearSelection
     noBtn.on('pointerdown', (_p, _lx, _ly, event) => {
       event.stopPropagation();
       this._mapWorldContainer.remove(overlay, true);
-      this._clearSelection();
+      this._resetSelectionState();
+      this._clearPlacementHighlights();
     });
 
     overlay.add([bg, label, yesBtn, noBtn]);
@@ -1052,33 +1096,48 @@ export default class DungeonMapUI {
 
   _playDeployAnimation(cellCont, cell, monsterTypeId, onComplete) {
     const scene = this.scene;
+    this._isAnimating = true;
+
+    // Pedestal (009: ellipse shadow)
+    const pedestal = scene.add.graphics();
+    pedestal.fillStyle(PEDESTAL_COLOR, PEDESTAL_ALPHA);
+    pedestal.fillEllipse(0, PEDESTAL_Y, PEDESTAL_RX * 2, PEDESTAL_RY * 2);
+    pedestal.setAlpha(0);
+    cellCont.add(pedestal);
+    cellCont.setData('pedestal', pedestal);
+
     const idleKey = `monster_${monsterTypeId}_idle`;
     let monSprite;
     if (scene.anims.exists(idleKey)) {
       monSprite = scene.add.sprite(0, DEPLOY_DROP_Y, idleKey).setOrigin(0.5);
-      monSprite.displayWidth = 40;
-      monSprite.displayHeight = 40;
+      monSprite.displayWidth = MONSTER_SIZE;
+      monSprite.displayHeight = MONSTER_SIZE;
       monSprite.setAlpha(0);
     } else {
       const staticKey = `monster_${monsterTypeId}`;
-      monSprite = SpriteHelper.createSprite(scene, staticKey, 0, DEPLOY_DROP_Y, 40);
+      monSprite = SpriteHelper.createSprite(scene, staticKey, 0, DEPLOY_DROP_Y, MONSTER_SIZE);
       monSprite.setAlpha(0);
     }
     cellCont.add(monSprite);
     cellCont.setData('monsterSprite', monSprite);
 
-    scene.tweens.add({
+    const dropTween = scene.tweens.add({
       targets: monSprite,
       y: 0,
       alpha: 1,
       duration: DEPLOY_DURATION,
       ease: 'Back.Out',
       onComplete: () => {
+        if (!scene || !cellCont.scene) { this._isAnimating = false; return; }
+        // Fade in pedestal
+        scene.tweens.add({ targets: pedestal, alpha: 1, duration: 100 });
         if (scene.anims.exists(idleKey)) {
-          const startFrame = Phaser.Math.Between(0, 3);
+          const entry = spriteManifest.find(e => e.key === idleKey);
+          const endFrame = entry?.animation?.end ?? 3;
+          const startFrame = Phaser.Math.Between(entry?.animation?.start ?? 0, endFrame);
           monSprite.play({ key: idleKey, startFrame });
         }
-        scene.tweens.add({
+        const bounceTween = scene.tweens.add({
           targets: cellCont,
           scaleX: DEPLOY_BOUNCE,
           scaleY: DEPLOY_BOUNCE,
@@ -1086,10 +1145,13 @@ export default class DungeonMapUI {
           yoyo: true,
           ease: 'Sine.InOut',
         });
+        this._activeAnimTweens.push(bounceTween);
         this._maybePlayBuffEffect(cellCont, cell, monsterTypeId);
+        this._isAnimating = false;
         if (onComplete) onComplete();
       },
     });
+    this._activeAnimTweens.push(dropTween);
   }
 
   _maybePlayBuffEffect(cellCont, cell, monsterTypeId) {
@@ -1131,7 +1193,8 @@ export default class DungeonMapUI {
       if (onComplete) onComplete();
       return;
     }
-    this.scene.tweens.add({
+    this._isAnimating = true;
+    const tween = this.scene.tweens.add({
       targets: sprite,
       alpha: 0,
       scaleX: REMOVE_SCALE,
@@ -1139,10 +1202,20 @@ export default class DungeonMapUI {
       duration: REMOVE_DURATION,
       ease: 'Sine.In',
       onComplete: () => {
-        sprite.destroy();
+        if (sprite.scene) sprite.destroy();
         if (onComplete) onComplete();
       },
     });
+    this._activeAnimTweens.push(tween);
+  }
+
+  /** Kill all tracked animation tweens and reset animation lock. */
+  _killAnimTweens() {
+    for (const t of this._activeAnimTweens) {
+      if (t && t.isPlaying && t.isPlaying()) t.stop();
+    }
+    this._activeAnimTweens = [];
+    this._isAnimating = false;
   }
 
   // ---------------------------------------------------------------------------
