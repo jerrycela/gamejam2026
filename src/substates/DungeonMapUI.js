@@ -80,19 +80,19 @@ export default class DungeonMapUI {
   setCellHighlight(cellId, color) {
     const cont = this._cellContainers.find(c => c.getData('cellId') === cellId);
     if (!cont) return;
-    const border = cont.getData('border');
-    if (!border) return;
+    const highlightBorder = cont.getData('highlightBorder');
+    if (!highlightBorder) return;
     const half = CELL_SIZE / 2;
-    border.clear();
+
     if (color !== null) {
-      border.lineStyle(3, color, 1);
-      border.strokeRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, 8);
+      highlightBorder.clear();
+      highlightBorder.setAlpha(1);
+      highlightBorder.lineStyle(3, color, 1);
+      highlightBorder.strokeRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, 8);
+      highlightBorder.setVisible(true);
     } else {
-      // Restore original via full redraw
-      const bgFill = cont.getData('bgFill');
-      bgFill.clear();
-      const cell = this.gameState.getCell(cellId);
-      if (cell) this._drawCellVisual(cell, border, bgFill, half);
+      highlightBorder.setVisible(false);
+      highlightBorder.setAlpha(1);
     }
   }
 
@@ -838,22 +838,22 @@ export default class DungeonMapUI {
       const cell   = this.gameState.getCell(cellId);
       if (!cell || cell.type !== 'normal') continue;
 
-      const border = cont.getData('border');
-      if (!border) continue;
+      const highlightBorder = cont.getData('highlightBorder');
+      if (!highlightBorder) continue;
+
+      // Draw green highlight border
+      const half = CELL_SIZE / 2;
+      highlightBorder.clear();
+      highlightBorder.lineStyle(3, 0x00ff44, 1);
+      highlightBorder.strokeRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, 8);
+      highlightBorder.setVisible(true);
 
       const tween = this.scene.tweens.add({
-        targets: border,
+        targets: highlightBorder,
         alpha: { from: 0.3, to: 0.8 },
         yoyo: true,
         repeat: -1,
         duration: 600,
-        onUpdate: () => {
-          // Redraw border in green each tween tick
-          const half = CELL_SIZE / 2;
-          border.clear();
-          border.lineStyle(3, 0x00ff44, border.alpha);
-          border.strokeRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, 8);
-        },
       });
       this._pulseTweens.push(tween);
     }
