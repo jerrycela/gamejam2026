@@ -495,10 +495,6 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
 
   }
 
-  /**
-   * Boss action tick — 技能優先（shockwave > dark_shield）> 普攻，每 tick 至多一個動作。
-   * 取代原 _tickBossSharedAttack。
-   */
   _tickBossAction(dt) {
     if (!this._bossContext) return;
     if (this._gameState.bossHp <= 0) return;
@@ -506,7 +502,32 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     const ctx = this._bossContext;
     const bossConfig = this._dataManager.getBossConfig();
 
-    // 1. 更新護盾計時器（即使 targetQueue 為空也要推進，避免 timer 凍結）
+    // 0. Phase transition check
+    if (bossConfig.phases && ctx.currentPhase === 1) {
+      const phase2 = bossConfig.phases.find(p => p.id === 2);
+      if (phase2 && this._gameState.bossHp / this._gameState.bossMaxHp <= phase2.hpThreshold) {
+        ctx.currentPhase = 2;
+        ctx.enabledSkillIds = phase2.enabledSkillIds;
+        ctx.atkMultiplier = phase2.atkMultiplier;
+        ctx.cdMultiplier = phase2.cdMultiplier;
+        // Reset all timers to prevent immediate triggers from cdMultiplier shrink
+        for (const skillId of Object.keys(ctx.skillTimers)) {
+          ctx.skillTimers[skillId] = 0;
+        }
+        ctx.attackTimer = 0;
+        // Init timer for newly enabled skills
+        for (const skillId of phase2.enabledSkillIds) {
+          if (!(skillId in ctx.skillTimers)) {
+            ctx.skillTimers[skillId] = 0;
+          }
+        }
+        this.emit('bossPhaseChange', { phase: 2 });
+        // Skip this frame entirely; phase 2 starts next frame (no summon tick either)
+        return;
+      }
+    }
+
+    // 1. 更新護盾計時器（即使 targetQueue 為空也要推進）
     if (ctx.shieldActive) {
       ctx.shieldTimer -= dt;
       if (ctx.shieldTimer <= 0) {
@@ -516,24 +537,42 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       }
     }
 
-    // 2. 推進所有技能 CD（即使 targetQueue 為空也推進）
-    for (const skill of bossConfig.skills) {
+    // 2. 推進 enabled 技能 CD
+    const enabledSkills = bossConfig.skills.filter(s => ctx.enabledSkillIds.includes(s.id));
+    for (const skill of enabledSkills) {
       ctx.skillTimers[skill.id] += dt;
     }
 
-    // 無英雄在場時不執行動作
-    if (ctx.targetQueue.length === 0) return;
+    // 無英雄在場時不執行技能/普攻（summon tick still runs below）
+    if (ctx.targetQueue.length === 0) {
+      this._tickSummons(dt);
+      return;
+    }
 
-    // 3. 依優先順序檢查技能（shockwave > dark_shield）
-    for (const skill of bossConfig.skills) {
-      if (ctx.skillTimers[skill.id] >= skill.cd * 1000) {
-        if (skill.type === 'buff_self' && ctx.shieldActive) continue; // 護盾 active 時跳過
+    // 3. 依 enabledSkillIds 順序檢查技能
+    for (const skill of enabledSkills) {
+      if (ctx.skillTimers[skill.id] >= skill.cd * ctx.cdMultiplier * 1000) {
+        // Summon type: check maxActive cap; if full, don't consume CD, try next
+        if (skill.type === 'summon') {
+          if (ctx.summons.length >= (skill.maxActive || 1)) continue;
+          ctx.skillTimers[skill.id] = 0;
+          ctx.summons.push({
+            atk: skill.summonAtk,
+            attackTimer: 0,
+            remainingTime: skill.summonDuration * 1000,
+            attackCd: skill.summonAttackCd,
+          });
+          this.emit('bossSummon', { skillId: skill.id, skillName: skill.name });
+          // Note: do NOT emit bossSkill for summon — bossSummon has its own UI handler
+          return; // 每 tick 至多一個動作
+        }
+
+        if (skill.type === 'buff_self' && ctx.shieldActive) continue;
 
         ctx.skillTimers[skill.id] = 0;
 
         if (skill.type === 'aoe_damage') {
-          // 震盪波：對所有正在戰鬥的英雄造成傷害
-          const dmg = Math.round(this._gameState.bossAtk * skill.damageMultiplier);
+          const dmg = Math.round(this._gameState.bossAtk * ctx.atkMultiplier * skill.damageMultiplier);
           const hitHeroes = this._heroes.filter(h => h.state === 'fighting' && h.hp > 0);
           for (const hero of hitHeroes) {
             this._applyDamageToHero(hero, dmg);
@@ -544,9 +583,9 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
           }
           this.emit('bossSkill', { skillId: skill.id, skillName: skill.name });
         } else if (skill.type === 'buff_self') {
-          // 暗影護盾：啟動減傷
           ctx.shieldActive = true;
           ctx.shieldTimer = skill.duration * 1000;
+          ctx.shieldReduction = skill.damageReduction;
           this.emit('bossSkill', { skillId: skill.id, skillName: skill.name });
         }
         return; // 每 tick 至多一個動作
@@ -560,9 +599,40 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       const targetHeroId = ctx.targetQueue[0];
       const targetHero = this._heroes.find(h => h.instanceId === targetHeroId);
       if (targetHero && targetHero.state === 'fighting') {
-        const dmg = this._resolveAttack(this._gameState.bossAtk, targetHero.def);
+        const dmg = this._resolveAttack(this._gameState.bossAtk * ctx.atkMultiplier, targetHero.def);
         this._applyDamageToHero(targetHero, dmg);
         this.emit('attack', { attackerType: 'boss', targetType: 'hero', targetId: targetHeroId, damage: dmg });
+      }
+    }
+
+    // 5. Summon tick — AFTER boss skills/attack, independent of targetQueue gate
+    this._tickSummons(dt);
+  }
+
+  /**
+   * Summon tick — timer-based side effects, independent of targetQueue gate.
+   * Duration/timer always advance. Attacks random fighting hero.
+   */
+  _tickSummons(dt) {
+    const ctx = this._bossContext;
+    if (!ctx || ctx.summons.length === 0) return;
+
+    for (let i = ctx.summons.length - 1; i >= 0; i--) {
+      const summon = ctx.summons[i];
+      summon.remainingTime -= dt;
+      if (summon.remainingTime <= 0) {
+        ctx.summons.splice(i, 1);
+        continue;
+      }
+      summon.attackTimer += dt;
+      if (summon.attackTimer >= summon.attackCd * 1000) {
+        summon.attackTimer = 0;
+        const candidates = this._heroes.filter(h => h.state === 'fighting' && h.hp > 0);
+        if (candidates.length === 0) continue;
+        const target = candidates[Math.floor(Math.random() * candidates.length)];
+        const dmg = this._resolveAttack(summon.atk, target.def);
+        this._applyDamageToHero(target, dmg);
+        this.emit('summonAttack', { targetId: target.instanceId, damage: dmg });
       }
     }
   }
