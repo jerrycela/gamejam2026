@@ -430,6 +430,22 @@ export default class DungeonMapUI {
     }
   }
 
+  /** Get the sprite key for a cell's background tile. */
+  _getCellSpriteKey(cell) {
+    if (cell.type === 'portal') return 'cell_portal';
+    if (cell.type === 'heart') return 'cell_heart';
+    if (!cell.room) return 'cell_empty';
+    const KNOWN = ['hatchery', 'lab', 'training', 'dungeon', 'treasury'];
+    if (KNOWN.includes(cell.room.typeId)) return `cell_${cell.room.typeId}`;
+    return 'cell_empty';
+  }
+
+  /** Get the icon sprite key for a room type, or null if unknown. */
+  _getRoomIconKey(roomTypeId) {
+    const KNOWN = ['hatchery', 'lab', 'training', 'dungeon', 'treasury'];
+    return KNOWN.includes(roomTypeId) ? `icon_${roomTypeId}` : null;
+  }
+
   /**
    * Build a single cell container and attach touch handler.
    * @param {object} cell - GridCell
@@ -439,99 +455,88 @@ export default class DungeonMapUI {
     const scene = this.scene;
     const vp = cell.visualPos ?? cell.position;
     const { x, y } = vp;
-    const half    = CELL_SIZE / 2;
+    const half = CELL_SIZE / 2;
 
     const cont = scene.add.container(x, y);
 
-    // Background graphics
-    const border = scene.add.graphics();
-    const bgFill = scene.add.graphics();
+    // Base sprite (cell tile)
+    const spriteKey = this._getCellSpriteKey(cell);
+    const baseSprite = scene.add.image(0, 0, spriteKey).setOrigin(0.5);
+    cont.add(baseSprite);
 
-    this._drawCellVisual(cell, border, bgFill, half);
+    // Default border (drawn per cell state)
+    const defaultBorder = scene.add.graphics();
+    this._drawDefaultBorder(cell, defaultBorder, half);
+    cont.add(defaultBorder);
 
-    // Room icon / label text
-    const labelStr  = this._getCellLabel(cell);
-    const labelText = scene.add.text(0, -8, labelStr, {
+    // Highlight border (transient, initially hidden)
+    const highlightBorder = scene.add.graphics();
+    highlightBorder.setVisible(false);
+    cont.add(highlightBorder);
+
+    // Room icon sprite (only for normal cells with known room types)
+    if (cell.room) {
+      const iconKey = this._getRoomIconKey(cell.room.typeId);
+      if (iconKey) {
+        const iconSprite = scene.add.image(0, -14, iconKey).setOrigin(0.5);
+        cont.add(iconSprite);
+      }
+    }
+
+    // Label text (below icon to avoid overlap)
+    const labelStr = this._getCellLabel(cell);
+    const labelText = scene.add.text(0, 6, labelStr, {
       fontSize: '14px', color: '#ffffff', fontFamily: 'monospace',
     }).setOrigin(0.5);
+    cont.add(labelText);
 
     // Trap icon (top-right corner)
-    const trapStr  = (cell.trap) ? '⚠' : '';
-    const trapIcon = scene.add.text(half - 4, -half + 4, trapStr, {
-      fontSize: '14px', color: '#ff6600', fontFamily: 'monospace',
-    }).setOrigin(1, 0);
+    if (cell.trap) {
+      const trapIcon = scene.add.text(half - 4, -half + 4, '\u26A0', {
+        fontSize: '14px', color: '#ff6600', fontFamily: 'monospace',
+      }).setOrigin(1, 0);
+      cont.add(trapIcon);
+    }
 
-    // Monster icon (sprite, bottom of cell)
-    let monIcon;
+    // Monster sprite (bottom of cell)
     if (cell.monster) {
       const monKey = `monster_${cell.monster.typeId}`;
-      monIcon = SpriteHelper.createSprite(scene, monKey, 0, 6, 54);
-    } else {
-      monIcon = scene.add.text(0, half - 10, '', {
-        fontSize: '10px', color: '#aaffaa', fontFamily: 'monospace',
-      }).setOrigin(0.5, 1);
+      const monIcon = SpriteHelper.createSprite(scene, monKey, 0, 6, 54);
+      cont.add(monIcon);
     }
 
-    cont.add([bgFill, border, labelText, trapIcon, monIcon]);
-
-    // Rune icon for room type
-    if (cell.room) {
-      const runeGfx = scene.add.graphics();
-      this._drawRuneIcon(runeGfx, cell.room.typeId, 0, -10);
-      cont.add(runeGfx);
-    }
-
-    // No interactive hitZone on cells; tap is detected via _handleMapTap hit-test on pointerup
-
-    // Store reference data on container for later use
+    // Store references
     cont.setData('cellId', cell.id);
-    cont.setData('border', border);
-    cont.setData('bgFill', bgFill);
+    cont.setData('defaultBorder', defaultBorder);
+    cont.setData('highlightBorder', highlightBorder);
 
     return cont;
   }
 
-  /**
-   * Draw the visual state (border + bg fill) of a cell.
-   * @param {object} cell
-   * @param {Phaser.GameObjects.Graphics} border
-   * @param {Phaser.GameObjects.Graphics} bgFill
-   * @param {number} half - half of CELL_SIZE
-   */
-  _drawCellVisual(cell, border, bgFill, half) {
+  /** Draw the default border for a cell based on its state. */
+  _drawDefaultBorder(cell, border, half) {
     const r = 8;
+    border.clear();
 
     if (cell.type === 'portal') {
-      // Glow effect: outer ring
       border.lineStyle(4, 0x00FFFF, 0.4);
       border.strokeRoundedRect(-half - 3, -half - 3, CELL_SIZE + 6, CELL_SIZE + 6, r + 2);
       border.lineStyle(3, 0x00FFFF, 1);
       border.strokeRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, r);
-      bgFill.fillStyle(0x003366, 0.6);
-      bgFill.fillRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, r);
     } else if (cell.type === 'heart') {
-      // Glow effect: purple outer ring
       border.lineStyle(4, 0x9B59B6, 0.4);
       border.strokeRoundedRect(-half - 3, -half - 3, CELL_SIZE + 6, CELL_SIZE + 6, r + 2);
       border.lineStyle(3, 0x9B59B6, 1);
       border.strokeRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, r);
-      bgFill.fillStyle(0x4b0082, 0.7);
-      bgFill.fillRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, r);
     } else if (!cell.room) {
       border.lineStyle(2, 0x8B4513, 0.4);
       border.strokeRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, r);
-      bgFill.fillStyle(0x8B4513, 0.2);
-      bgFill.fillRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, r);
-    } else if (cell.room && cell.trap) {
+    } else if (cell.trap) {
       border.lineStyle(3, 0x8B0000, 1);
       border.strokeRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, r);
-      bgFill.fillStyle(0x1a1a2e, 0.85);
-      bgFill.fillRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, r);
     } else {
       border.lineStyle(3, 0x8B4513, 1);
       border.strokeRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, r);
-      bgFill.fillStyle(0x1a1a2e, 0.85);
-      bgFill.fillRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, r);
     }
   }
 
@@ -540,75 +545,11 @@ export default class DungeonMapUI {
     if (cell.type === 'portal') return '入口';
     if (cell.type === 'heart')  return '地城之心';
     if (!cell.room)             return '?';
-    return cell.room.typeId;
-  }
-
-  _drawRuneIcon(graphics, roomTypeId, cx, cy) {
-    const RUNE_COLORS = {
-      hatchery: 0x8B0000,
-      lab: 0x6a3a8e,
-      training: 0xB8860B,
-      dungeon: 0x555555,
-      treasury: 0xf0c040,
+    const LABEL_MAP = {
+      hatchery: '孵化室', lab: '實驗室', training: '訓練場',
+      dungeon: '牢房', treasury: '寶庫',
     };
-    const color = RUNE_COLORS[roomTypeId] || 0x8B4513;
-    graphics.lineStyle(2, color, 0.8);
-
-    switch (roomTypeId) {
-      case 'hatchery':
-        graphics.strokeCircle(cx, cy, 10);
-        for (let a = 0; a < 4; a++) {
-          const angle = a * Math.PI / 2;
-          graphics.beginPath();
-          graphics.moveTo(cx + Math.cos(angle) * 8, cy + Math.sin(angle) * 8);
-          graphics.lineTo(cx + Math.cos(angle) * 14, cy + Math.sin(angle) * 14);
-          graphics.strokePath();
-        }
-        break;
-      case 'lab':
-        graphics.beginPath();
-        graphics.moveTo(cx, cy - 14);
-        graphics.lineTo(cx, cy + 14);
-        graphics.strokePath();
-        graphics.strokeCircle(cx, cy - 14, 4);
-        break;
-      case 'training':
-        graphics.beginPath();
-        graphics.moveTo(cx, cy - 14);
-        graphics.lineTo(cx, cy + 10);
-        graphics.strokePath();
-        graphics.beginPath();
-        graphics.moveTo(cx - 8, cy - 2);
-        graphics.lineTo(cx + 8, cy - 2);
-        graphics.strokePath();
-        break;
-      case 'dungeon':
-        graphics.strokeCircle(cx, cy - 4, 8);
-        graphics.beginPath();
-        graphics.moveTo(cx - 5, cy + 4);
-        graphics.lineTo(cx - 3, cy + 9);
-        graphics.lineTo(cx + 3, cy + 9);
-        graphics.lineTo(cx + 5, cy + 4);
-        graphics.strokePath();
-        break;
-      case 'treasury':
-        graphics.strokeCircle(cx, cy, 10);
-        graphics.beginPath();
-        graphics.moveTo(cx, cy - 7);
-        graphics.lineTo(cx, cy + 7);
-        graphics.strokePath();
-        graphics.beginPath();
-        graphics.moveTo(cx - 5, cy - 3);
-        graphics.lineTo(cx + 5, cy - 3);
-        graphics.strokePath();
-        graphics.beginPath();
-        graphics.moveTo(cx - 5, cy + 3);
-        graphics.lineTo(cx + 5, cy + 3);
-        graphics.strokePath();
-        break;
-      default:
-        graphics.strokeCircle(cx, cy, 8);
-    }
+    return LABEL_MAP[cell.room.typeId] || cell.room.typeId;
   }
 
   // ---------------------------------------------------------------------------
