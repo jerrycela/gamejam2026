@@ -341,22 +341,24 @@ export default class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     container.add(title);
 
-    // Generate 3 shop items (rooms + traps, filtered by unlock status)
+    // Generate up to 3 unique shop items (rooms + traps, filtered by unlock status)
     const unlockedRooms = buildUnlockedPool(this.dataManager.rooms, 'rooms', this.metaState);
     const unlockedTraps = buildUnlockedPool(this.dataManager.traps, 'traps', this.metaState);
     const pool = [
-      ...unlockedRooms.map(r => ({ type: 'room', id: r.id, name: r.name, price: 100 })),
-      ...unlockedTraps.map(t => ({ type: 'trap', id: t.id, name: t.name, price: 80 })),
+      ...unlockedRooms.map(r => ({ type: 'room', id: r.id, name: r.name, price: r.shopPrice || 100, label: '房間' })),
+      ...unlockedTraps.map(t => ({ type: 'trap', id: t.id, name: t.name, price: t.shopPrice || 80, label: '陷阱' })),
     ];
 
-    const items = [];
-    for (let i = 0; i < 3; i++) {
-      items.push(pool[Math.floor(Math.random() * pool.length)]);
+    // Shuffle and take unique items
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
     }
+    const items = pool.slice(0, Math.min(3, pool.length));
 
     const cardW = 100;
     const gap = 16;
-    const totalW = cardW * 3 + gap * 2;
+    const totalW = cardW * items.length + gap * (items.length - 1);
     const startX = (width - totalW) / 2 + cardW / 2;
 
     const shopItems = [];
@@ -367,6 +369,10 @@ export default class GameScene extends Phaser.Scene {
 
       const bg = this.add.rectangle(x, y, cardW, 150, 0x34495e)
         .setStrokeStyle(2, 0x2980b9);
+
+      const typeText = this.add.text(x, y - 50, item.label, {
+        fontSize: '11px', color: '#95a5a6', fontFamily: 'sans-serif'
+      }).setOrigin(0.5);
 
       const nameText = this.add.text(x, y - 30, item.name, {
         fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif'
@@ -406,7 +412,7 @@ export default class GameScene extends Phaser.Scene {
         buyBtn.setAlpha(0.4).disableInteractive();
       }
 
-      container.add([bg, nameText, priceText, buyBtn]);
+      container.add([bg, typeText, nameText, priceText, buyBtn]);
     });
 
     // Leave button
