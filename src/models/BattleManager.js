@@ -101,14 +101,14 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       }
     }
 
-    // Boss action tick — skills + shared attack (after all hero ticks)
-    this._tickBossAction(dt);
-
-    // Check boss breached
+    // Check boss breached (BEFORE boss action to prevent dead-boss attacks)
     if (this._gameState.bossHp <= 0) {
       this._endBattle('bossBreached');
       return;
     }
+
+    // Boss action tick — skills + shared attack + summon tick (after all hero ticks)
+    this._tickBossAction(dt);
 
     // Check all heroes done
     if (this._heroes.every(h => h.state === 'dead' || h.state === 'captured')) {
