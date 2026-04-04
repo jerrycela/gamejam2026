@@ -1,239 +1,149 @@
 // GridTopologyGenerator.js
-// Generates a dungeon grid topology for a single run.
-// Returns an array of GridCell objects with directed connections flowing portal → heart.
+// Template-based dungeon grid topology for tower defense gameplay.
+// Generates a single main path with optional split-merge branches.
+
+import { seededCellRandom } from '../utils/seededRandom.js';
+
+// Column X positions
+const COL_X = { left: 82, center: 187, right: 292 };
+
+// Row Y positions
+const ROW_Y = [80, 220, 360, 500, 640, 780];
+
+// --- Template Definitions ---
+// connections: [sourceIndex, targetIndex] referencing flat cell array order
+// colAssign: column for each cell in order ('left'|'center'|'right')
+
+const TEMPLATE_A = {
+  name: 'A_linear',
+  rows: [1, 1, 1, 1, 1, 1],  // cells per row
+  colAssign: ['center', 'center', 'center', 'center', 'center', 'center'],
+  connections: [[0,1],[1,2],[2,3],[3,4],[4,5]],
+  forkNodes: [],
+  mergeNodes: [],
+};
+
+const TEMPLATE_B = {
+  name: 'B_single_fork_1row',
+  rows: [1, 1, 2, 1, 1, 1],  // row 2 has 2 cells (fork)
+  colAssign: ['center', 'center', 'left', 'right', 'center', 'center', 'center'],
+  // cells: 0=portal, 1=pre-fork, 2=branch-L, 3=branch-R, 4=merge, 5=post-merge, 6=heart
+  connections: [[0,1],[1,2],[1,3],[2,4],[3,4],[4,5],[5,6]],
+  forkNodes: [1],
+  mergeNodes: [4],
+};
+
+const TEMPLATE_C = {
+  name: 'C_single_fork_2row',
+  rows: [1, 1, 2, 2, 1, 1],  // rows 2-3 each have 2 cells
+  colAssign: ['center', 'center', 'left', 'right', 'left', 'right', 'center', 'center'],
+  // cells: 0=portal, 1=fork, 2=branch-L1, 3=branch-R1, 4=branch-L2, 5=branch-R2, 6=merge, 7=heart
+  connections: [[0,1],[1,2],[1,3],[2,4],[3,5],[4,6],[5,6],[6,7]],
+  forkNodes: [1],
+  mergeNodes: [6],
+};
+
+const TEMPLATE_D = {
+  name: 'D_double_fork',
+  rows: [1, 2, 1, 2, 1, 1],  // rows 1 and 3 have 2 cells
+  colAssign: ['center', 'left', 'right', 'center', 'left', 'right', 'center', 'center'],
+  // cells: 0=portal/fork1, 1=branch1-L, 2=branch1-R, 3=merge1/fork2, 4=branch2-L, 5=branch2-R, 6=merge2, 7=heart
+  connections: [[0,1],[0,2],[1,3],[2,3],[3,4],[3,5],[4,6],[5,6],[6,7]],
+  forkNodes: [0, 3],
+  mergeNodes: [3, 6],
+};
+
+const TEMPLATES = [
+  { template: TEMPLATE_A, weight: 10 },
+  { template: TEMPLATE_B, weight: 40 },
+  { template: TEMPLATE_C, weight: 30 },
+  { template: TEMPLATE_D, weight: 20 },
+];
 
 export default class GridTopologyGenerator {
   /**
-   * Generate a fresh dungeon grid.
-   * @returns {GridCell[]}
+   * Generate a dungeon grid from a weighted random template.
+   * @param {number} [mapSeed] - Optional seed for deterministic generation
+   * @returns {{ cells: GridCell[], mapSeed: number, templateName: string }}
    */
-  static generate() {
-    const MAX_ATTEMPTS = 10;
-    let result = null;
-
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      const grid = GridTopologyGenerator._buildGrid();
-      if (GridTopologyGenerator._bfsReachable(grid)) {
-        return grid;
-      }
-      result = grid;
+  static generate(mapSeed) {
+    if (mapSeed === undefined) {
+      mapSeed = Math.floor(Math.random() * 2147483647);
     }
 
-    // Return last attempt if BFS never passed
-    console.warn('[GridTopologyGenerator] BFS validation failed after', MAX_ATTEMPTS, 'attempts — returning last attempt');
-    return result;
+    const template = GridTopologyGenerator._selectTemplate(mapSeed);
+    const mirror = GridTopologyGenerator._shouldMirror(mapSeed);
+    const cells = GridTopologyGenerator._buildCells(template, mirror, mapSeed);
+
+    return { cells, mapSeed, templateName: template.name };
   }
 
-  // ---------------------------------------------------------------------------
-  // Internal helpers
-  // ---------------------------------------------------------------------------
+  static _selectTemplate(seed) {
+    const totalWeight = TEMPLATES.reduce((s, t) => s + t.weight, 0);
+    // Use seed to pick template deterministically
+    let roll = (((seed * 1103515245 + 12345) >>> 0) / 4294967296) * totalWeight;
+    for (const { template, weight } of TEMPLATES) {
+      roll -= weight;
+      if (roll <= 0) return template;
+    }
+    return TEMPLATES[0].template;
+  }
 
-  static _buildGrid() {
+  static _shouldMirror(seed) {
+    return (((seed * 214013 + 2531011) >>> 0) / 4294967296) < 0.5;
+  }
+
+  static _buildCells(template, mirror, mapSeed) {
     const cells = [];
-    let idCounter = 0;
+    let cellIndex = 0;
+    let rowIndex = 0;
 
-    const makeId = () => {
-      const id = `cell_${String(idCounter).padStart(2, '0')}`;
-      idCounter++;
-      return id;
-    };
+    for (const rowCount of template.rows) {
+      for (let c = 0; c < rowCount; c++) {
+        const colKey = template.colAssign[cellIndex];
+        let col = colKey;
 
-    const makeCell = (type, x, y) => ({
-      id: makeId(),
-      type,
-      position: { x, y },
-      connections: [],
-      room: null,
-      trap: null,
-      monster: null
-    });
+        // Apply mirror: swap left/right
+        if (mirror && col === 'left') col = 'right';
+        else if (mirror && col === 'right') col = 'left';
 
-    // --- Row 0: portal ---
-    const portalCell = makeCell('portal', 187, 60);
-    cells.push(portalCell);
-    const rows = [[portalCell]];
+        const type = (rowIndex === 0) ? 'portal'
+                   : (rowIndex === template.rows.length - 1) ? 'heart'
+                   : 'normal';
 
-    // --- Rows 1-4: normal cells ---
-    const ROW_Y = [260, 460, 660, 860];
-    const middleRows = [];
+        const logicalPos = { x: COL_X[col], y: ROW_Y[rowIndex] };
 
-    for (const y of ROW_Y) {
-      const count = GridTopologyGenerator._randInt(2, 3);
-      const rowCells = GridTopologyGenerator._makeRowCells(makeCell, count, y);
-      middleRows.push(rowCells);
-      cells.push(...rowCells);
-      rows.push(rowCells);
+        // Compute visual jitter
+        const jx = seededCellRandom(mapSeed, `cell_${cellIndex}`, 'x') * 16 - 8;
+        const jy = seededCellRandom(mapSeed, `cell_${cellIndex}`, 'y') * 8 - 4;
+        const visualPos = {
+          x: logicalPos.x + jx,
+          y: logicalPos.y + jy,
+        };
+
+        cells.push({
+          id: `cell_${String(cellIndex).padStart(2, '0')}`,
+          type,
+          position: logicalPos,      // logicalPos (backward compat — used by hit-test)
+          visualPos,                  // for rendering & hero movement
+          connections: [],
+          room: null,
+          trap: null,
+          monster: null,
+        });
+
+        cellIndex++;
+      }
+      rowIndex++;
     }
 
-    // Guarantee total 9-12 normal cells; at least one row has 3 nodes.
-    GridTopologyGenerator._enforceNodeCount(middleRows, cells, makeCell, ROW_Y);
-
-    // --- Row 5: heart ---
-    const heartCell = makeCell('heart', 187, 1060);
-    cells.push(heartCell);
-    rows.push([heartCell]);
-
-    // --- Connections ---
-    GridTopologyGenerator._buildConnections(rows);
+    // Wire connections
+    for (const [srcIdx, dstIdx] of template.connections) {
+      if (cells[srcIdx] && cells[dstIdx]) {
+        cells[srcIdx].connections.push(cells[dstIdx].id);
+      }
+    }
 
     return cells;
   }
-
-  /**
-   * Create cells for a single middle row.
-   * @param {Function} makeCell
-   * @param {number} count - 2 or 3
-   * @param {number} y
-   * @returns {GridCell[]}
-   */
-  static _makeRowCells(makeCell, count, y) {
-    const positions = count === 2
-      ? [125, 250]
-      : [93, 187, 281];
-
-    return positions.map(baseX => {
-      const jitter = GridTopologyGenerator._randJitter(30);
-      return makeCell('normal', baseX + jitter, y);
-    });
-  }
-
-  /**
-   * Ensure the four middle rows have 9-12 nodes total with at least one 3-node row.
-   * Mutates middleRows and cells in-place as needed.
-   */
-  static _enforceNodeCount(middleRows, cells, makeCell, rowY) {
-    const total = () => middleRows.reduce((sum, r) => sum + r.length, 0);
-
-    // Expand 2-node rows until total >= 9
-    while (total() < 9) {
-      // Pick a random 2-node row
-      const candidates = middleRows.map((r, i) => i).filter(i => middleRows[i].length === 2);
-      if (candidates.length === 0) break; // all rows already at 3
-      const idx = candidates[GridTopologyGenerator._randInt(0, candidates.length - 1)];
-      const y = rowY[idx];
-      const newCell = makeCell('normal', 281 + GridTopologyGenerator._randJitter(30), y);
-      middleRows[idx].push(newCell);
-      cells.push(newCell);
-    }
-
-    // Guarantee at least one row has 3 nodes (may already be satisfied above)
-    const hasThreeNode = middleRows.some(r => r.length === 3);
-    if (!hasThreeNode) {
-      const idx = GridTopologyGenerator._randInt(0, 3);
-      const y = rowY[idx];
-      const newCell = makeCell('normal', 281 + GridTopologyGenerator._randJitter(30), y);
-      middleRows[idx].push(newCell);
-      cells.push(newCell);
-    }
-  }
-
-  /**
-   * Build directed connections: each node in row N → 1-2 nodes in row N+1.
-   * Then ensure every node in row N+1 has at least one incoming edge.
-   * @param {GridCell[][]} rows
-   */
-  static _buildConnections(rows) {
-    for (let n = 0; n < rows.length - 1; n++) {
-      const current = rows[n];
-      const next = rows[n + 1];
-
-      // Each node in current row connects to 1-2 random nodes in next row
-      for (const cell of current) {
-        const maxOut = Math.min(2, next.length);
-        const outCount = GridTopologyGenerator._randInt(1, maxOut);
-        const targets = GridTopologyGenerator._sampleWithoutReplacement(next, outCount);
-        for (const target of targets) {
-          if (!cell.connections.includes(target.id)) {
-            cell.connections.push(target.id);
-          }
-        }
-      }
-
-      // Ensure every node in next row has at least one incoming edge
-      const reachable = new Set(current.flatMap(c => c.connections));
-      for (const target of next) {
-        if (!reachable.has(target.id)) {
-          const source = current[GridTopologyGenerator._randInt(0, current.length - 1)];
-          if (!source.connections.includes(target.id)) {
-            source.connections.push(target.id);
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * BFS from the portal cell to verify the heart cell is reachable.
-   * @param {GridCell[]} cells
-   * @returns {boolean}
-   */
-  static _bfsReachable(cells) {
-    const portalCell = cells.find(c => c.type === 'portal');
-    const heartCell = cells.find(c => c.type === 'heart');
-    if (!portalCell || !heartCell) return false;
-
-    const cellMap = new Map(cells.map(c => [c.id, c]));
-    const visited = new Set();
-    const queue = [portalCell.id];
-
-    while (queue.length > 0) {
-      const currentId = queue.shift();
-      if (currentId === heartCell.id) return true;
-      if (visited.has(currentId)) continue;
-      visited.add(currentId);
-
-      const cell = cellMap.get(currentId);
-      if (!cell) continue;
-      for (const nextId of cell.connections) {
-        if (!visited.has(nextId)) {
-          queue.push(nextId);
-        }
-      }
-    }
-
-    return false;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Utility
-  // ---------------------------------------------------------------------------
-
-  /** Random integer in [min, max] inclusive. */
-  static _randInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
-  /** Random jitter in [-range, +range] (integer). */
-  static _randJitter(range) {
-    return Math.floor(Math.random() * (range * 2 + 1)) - range;
-  }
-
-  /**
-   * Sample `count` unique items from `arr` without replacement.
-   * @param {GridCell[]} arr
-   * @param {number} count
-   * @returns {GridCell[]}
-   */
-  static _sampleWithoutReplacement(arr, count) {
-    const copy = arr.slice();
-    const result = [];
-    const n = Math.min(count, copy.length);
-    for (let i = 0; i < n; i++) {
-      const idx = GridTopologyGenerator._randInt(0, copy.length - 1);
-      result.push(copy[idx]);
-      copy.splice(idx, 1);
-    }
-    return result;
-  }
 }
-
-/**
- * @typedef {object} GridCell
- * @property {string} id                 - Unique id, e.g. 'cell_00'
- * @property {'normal'|'portal'|'heart'} type
- * @property {{ x: number, y: number }} position  - Logical map-world coordinates
- * @property {string[]} connections      - Directed edges (downstream, toward heart)
- * @property {object|null} room
- * @property {object|null} trap
- * @property {object|null} monster
- */
