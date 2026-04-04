@@ -2,7 +2,6 @@ import { TOP_HUD_HEIGHT, TAB_BAR_HEIGHT } from '../utils/constants.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
 
 // --- Layout constants ---
-const MAP_WORLD_W  = 375;
 const MAP_WORLD_H  = 860;
 const HAND_H       = 64;
 const CELL_SIZE    = 80;
