@@ -265,17 +265,17 @@ export default class DungeonMapUI {
     this._pathSpriteContainer.removeAll(true);
     this._pathOverlayContainer.removeAll(true);
 
-    // 2. Path lines + decorations
+    // 2. Path lines + chain sprites
     const grid = this.gameState.dungeonGrid;
     const cellMap = new Map(grid.map(c => [c.id, c]));
     const pathGfx = this._pathGfx;
+    const scene = this.scene;
 
     for (const cell of grid) {
       for (const targetId of cell.connections) {
         const target = cellMap.get(targetId);
         if (!target) continue;
 
-        // Use visualPos for rendering
         const ax = cell.visualPos?.x ?? cell.position.x;
         const ay = cell.visualPos?.y ?? cell.position.y;
         const bx = target.visualPos?.x ?? target.position.x;
@@ -300,64 +300,44 @@ export default class DungeonMapUI {
         pathGfx.lineTo(bx, by);
         pathGfx.strokePath();
 
-        // Chain link rings along path
-        const steps = Math.floor(dist / 24);
-        for (let s = 1; s < steps; s++) {
-          const t = s / steps;
-          const distFromStart = dist * t;
-          const distFromEnd = dist * (1 - t);
-          if (distFromStart < 20 || distFromEnd < 20) continue;
+        // Chain sprites along path (skip 28px margins at each end)
+        const startOffset = 28;
+        const endOffset = 28;
+        const usableDist = dist - startOffset - endOffset;
 
-          const cx = ax + dx * t;
-          const cy = ay + dy * t;
-
-          // Chain ring: stroked ellipse (rotated via 2 overlapping circles)
-          pathGfx.lineStyle(2, 0xCD853F, 0.8);
-          pathGfx.strokeCircle(cx, cy, 6);
-          pathGfx.fillStyle(0x2d1b0e, 0.5);
-          pathGfx.fillCircle(cx, cy, 4);
+        if (usableDist > 0) {
+          const chainSpacing = 24;
+          const chainCount = Math.floor(usableDist / chainSpacing);
+          for (let s = 0; s < chainCount; s++) {
+            const t = (startOffset + s * chainSpacing + chainSpacing / 2) / dist;
+            const cx = ax + dx * t;
+            const cy = ay + dy * t;
+            const chain = scene.add.image(cx, cy, 'path_chain')
+              .setOrigin(0.5, 0.5)
+              .setRotation(angle);
+            this._pathSpriteContainer.add(chain);
+          }
         }
 
-        // Arrow at downstream end
-        const arrowDist = 18;
-        const arrowSize = 10;
-        const arrowT = Math.max(0, 1 - arrowDist / dist);
+        // Arrow sprite at downstream end (28px before target center)
+        const arrowT = Math.max(0, 1 - endOffset / dist);
         const arrowX = ax + dx * arrowT;
         const arrowY = ay + dy * arrowT;
-
-        pathGfx.fillStyle(0xCD853F, 0.9);
-        pathGfx.fillTriangle(
-          arrowX + Math.cos(angle) * arrowSize,
-          arrowY + Math.sin(angle) * arrowSize,
-          arrowX + Math.cos(angle + 2.4) * arrowSize * 0.5,
-          arrowY + Math.sin(angle + 2.4) * arrowSize * 0.5,
-          arrowX + Math.cos(angle - 2.4) * arrowSize * 0.5,
-          arrowY + Math.sin(angle - 2.4) * arrowSize * 0.5,
-        );
+        const arrow = scene.add.image(arrowX, arrowY, 'path_arrow')
+          .setOrigin(0.5, 0.5)
+          .setRotation(angle);
+        this._pathOverlayContainer.add(arrow);
       }
     }
 
-    // 3. Fork/Merge diamond markers
+    // 3. Fork/Merge diamond markers (in overlay, above cells)
     for (const cell of grid) {
       if (cell.connections.length > 1 || this._getIncomingCount(cell.id, grid) > 1) {
         const cx = cell.visualPos?.x ?? cell.position.x;
         const cy = cell.visualPos?.y ?? cell.position.y;
-        // Glow
-        pathGfx.fillStyle(0xf0c040, 0.25);
-        pathGfx.fillPoints([
-          { x: cx, y: cy - 14 },
-          { x: cx + 10, y: cy },
-          { x: cx, y: cy + 14 },
-          { x: cx - 10, y: cy },
-        ], true);
-        // Core diamond
-        pathGfx.fillStyle(0xf0c040, 0.85);
-        pathGfx.fillPoints([
-          { x: cx, y: cy - 10 },
-          { x: cx + 7, y: cy },
-          { x: cx, y: cy + 10 },
-          { x: cx - 7, y: cy },
-        ], true);
+        const diamond = scene.add.image(cx, cy, 'path_diamond')
+          .setOrigin(0.5, 0.5);
+        this._pathOverlayContainer.add(diamond);
       }
     }
 
