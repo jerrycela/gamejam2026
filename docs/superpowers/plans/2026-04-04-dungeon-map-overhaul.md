@@ -284,7 +284,7 @@ this.dungeonGrid = result.cells;
 this.mapSeed = result.mapSeed;
 ```
 
-Ensure `visualPos` is preserved when serializing/deserializing GameState (if localStorage persistence exists).
+Note: `mapSeed` is stored for jitter reproducibility (deterministic visual layout per run), not for full state serialization — GameState is run-scoped and not persisted to localStorage.
 
 - [ ] **Step 3: Update getCellPosition helper if it exists in GameState**
 
@@ -358,6 +358,16 @@ const dx = worldX - cell.position.x;  // use logicalPos
 const dy = worldY - cell.position.y;
 ```
 
+- [ ] **Step 3.5: Audit all cell.position visual uses in DungeonMapUI**
+
+> **Review finding (Codex R2 P2):** `showRoomBuffIndicators()` and replace/swap confirm overlays still use `cell.position` for visual absolute positioning.
+
+Search DungeonMapUI.js for `cell.position` used in visual rendering (not hit-test). Known locations:
+- `showRoomBuffIndicators()`: `const { x, y } = cell.position;` → change to `cell.visualPos ?? cell.position`
+- Replace/swap confirm overlay positioning → same migration
+
+Keep `cell.position` for hit-test (logicalPos).
+
 - [ ] **Step 4: Lint + verify**
 
 Run: `npx eslint src/substates/DungeonMapUI.js`
@@ -368,6 +378,43 @@ Check no new errors.
 ```bash
 git add src/substates/DungeonMapUI.js
 git commit -m "feat(p025): update DungeonMapUI layout constants to 80px cells"
+```
+
+---
+
+### Task 4.5: Migrate BattleUI to use visualPos for rendering
+
+> **Review finding (Codex P1):** BattleUI reads `portalCell.position` and `heartCell.position` directly for hero spawn positions, boss-hit popups, and boss-skill text. After jitter is introduced, these will desync from rendered cell positions.
+
+**Files:**
+- Modify: `src/substates/BattleUI.js`
+
+- [ ] **Step 1: Find all `cell.position` references in BattleUI.js**
+
+Search for `portalCell.position`, `heartCell.position`, `cell.position` in BattleUI.js. Each one used for visual rendering must switch to `cell.visualPos ?? cell.position`.
+
+Known locations (from review):
+- Line ~182: `portalCell.position` for hero spawn position
+- Line ~291: `heartCell.position` for boss damage popup
+- Line ~474: `heartCell.position` for boss skill text
+- Line ~485: `heartCell.position.y` for boss skill animation
+- Line ~548: `heartCell.position` for another boss skill text
+- Line ~584: `heartCell.position` fallback for display position
+
+- [ ] **Step 2: Update each reference**
+
+Pattern: replace `cell.position` with `cell.visualPos ?? cell.position` for all **visual** uses (spawn, popup, text position). Keep `cell.position` for any **logical** uses (hit-test, pathfinding).
+
+- [ ] **Step 3: Lint + verify**
+
+Run: `npx eslint src/substates/BattleUI.js`
+Start game, trigger battle, verify hero spawns at correct visual position and boss effects render correctly.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/substates/BattleUI.js
+git commit -m "fix(p025): migrate BattleUI to visualPos for rendering coordinates"
 ```
 
 ---
@@ -906,19 +953,50 @@ _assignNextMove(hero) {
 }
 ```
 
-- [ ] **Step 5: Lint + battle test**
+- [ ] **Step 5: Audit currentCellId usage for pathing decisions**
+
+> **Review finding (Gemini P2 + Codex P2):** Other code may read `hero.currentCellId` to predict or decide future cells. All such logic must use the new `hero.route` array.
+
+Search for `hero.currentCellId` in BattleManager.js and BattleUI.js. Verify:
+- Uses for "where is the hero now" (state tracking, cell processing) → keep as-is
+- Uses for "where will the hero go next" (pathing decisions) → refactor to use hero.route
+
+- [ ] **Step 5.5: Use battle count offset for fork distribution**
+
+> **Review finding (Codex R2 P2):** `heroIndex % branches` always sends single-hero battles to branch 0.
+
+Add a `_battleCount` counter to BattleManager (increment in `start()`). Change fork selection to:
+```javascript
+const branchIndex = (heroIndex + this._battleCount) % cell.connections.length;
+```
+This distributes single-hero battles across branches over multiple waves.
+
+- [ ] **Step 6: Integrate forecast route display**
+
+> **Review finding (Codex P2 + Codex R2 P1):** `drawForecastRoute()` is defined in Task 5 but has no caller. Also, `battleManager.start()` emits `battleStart` BEFORE `BattleUI.start()` binds listeners, so an event-based approach would miss the forecast.
+
+**Solution:** Do NOT use battleStart event for forecast. Instead:
+1. Add a public getter `BattleManager.getHeroRoutes()` that returns all heroes' pre-computed routes
+2. In `BattleUI.start()` (after binding listeners), call `this._battleManager.getHeroRoutes()` and pass the first hero's route to `dungeonMapUI.drawForecastRoute(route)`
+3. On `battleEnd` listener in BattleUI, call `dungeonMapUI.clearForecastRoute()`
+
+Note: Show only the first hero's route as the forecast preview (not all routes overlapping).
+
+- [ ] **Step 7: Lint + battle test**
 
 Run: `npx eslint src/models/BattleManager.js`
 Start game, trigger a battle. Verify:
 - Heroes spawn at portal and move down
 - At fork points, different heroes take different branches
 - All heroes eventually reach the heart (or get killed along the way)
+- Forecast route (blue dashed line) appears on map at battle start
+- Forecast route clears when battle ends
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add src/models/BattleManager.js
-git commit -m "feat(p025): pre-computed hero routes with fork alternation"
+git add src/models/BattleManager.js src/substates/BattleUI.js
+git commit -m "feat(p025): pre-computed hero routes with fork alternation and forecast display"
 ```
 
 ---
@@ -940,12 +1018,22 @@ Play through a complete game loop:
 7. Place cards on cells: verify tap-to-place still works
 8. Visit 刑房, 怪物 tabs: verify they still work
 
+- [ ] **Step 1.5: Verify camera bounds and scroll**
+
+> **Review finding (Gemini P2):** MAP_WORLD_H shrink from 1200 to 860 may break camera bounds.
+
+Search for `setBounds`, `MAP_WORLD_H`, and any scroll limit logic in DungeonMapUI.js. Verify:
+- Camera or container bounds use the new MAP_WORLD_H (860)
+- Scroll doesn't overshoot (bottom of map is reachable, can't scroll past)
+- Top of map starts at correct Y position
+
 - [ ] **Step 2: Fix any visual issues found**
 
 Common fixes:
 - Scroll bounds may need adjustment for new MAP_WORLD_H (860 vs 1200)
 - Cell popup positioning may need update for 80px cells
 - Hand area background color should match new theme
+- Camera setBounds calls must match new world dimensions
 
 - [ ] **Step 3: Final lint check**
 
@@ -969,6 +1057,7 @@ git commit -m "fix(p025): integration fixes after dungeon map overhaul"
 | **Rewrite** | `src/models/GridTopologyGenerator.js` | 2 |
 | **Modify** | `src/models/GameState.js` | 3 |
 | **Modify** | `src/substates/DungeonMapUI.js` | 4, 5, 6 |
+| **Modify** | `src/substates/BattleUI.js` | 4.5, 8 |
 | **Modify** | `src/scenes/BootScene.js` | 7 |
 | **Modify** | `src/scenes/GameScene.js` | 7 |
 | **Modify** | `src/scenes/ResultScene.js` | 7 |
