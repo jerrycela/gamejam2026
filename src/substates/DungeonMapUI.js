@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import { TOP_HUD_HEIGHT, TAB_BAR_HEIGHT } from '../utils/constants.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
 
@@ -453,39 +454,43 @@ export default class DungeonMapUI {
     highlightBorder.setVisible(false);
     cont.add(highlightBorder);
 
-    // Room icon sprite (only for normal cells with known room types)
+    // Room icon sprite — left-bottom corner, small (P026: room is now background context)
     if (cell.room) {
       const iconKey = this._getRoomIconKey(cell.room.typeId);
       if (iconKey) {
-        const iconSprite = scene.add.image(0, -14, iconKey).setOrigin(0.5);
+        const iconSprite = SpriteHelper.createSprite(scene, iconKey, -half + 10, half - 10, 10);
         cont.add(iconSprite);
+        cont.setData('roomIcon', iconSprite);
       }
     }
 
-    // Label text (below icon to avoid overlap)
-    const labelStr = this._getCellLabel(cell);
-    const labelText = scene.add.text(0, 6, labelStr, {
-      fontSize: '14px', color: '#ffffff', fontFamily: 'monospace',
-    }).setOrigin(0.5);
-    cont.add(labelText);
-
-    // Trap icon (top-right corner)
+    // Trap icon — top-right corner, pixel art (P026: replaces emoji)
     if (cell.trap) {
-      const trapIcon = scene.add.text(half - 4, -half + 4, '\u26A0', {
-        fontSize: '14px', color: '#ff6600', fontFamily: 'monospace',
-      }).setOrigin(1, 0);
+      const trapIcon = SpriteHelper.createSprite(scene, 'icon_trap', half - 8, -half + 8, 12);
       cont.add(trapIcon);
     }
 
-    // Monster sprite (bottom of cell)
+    // Monster sprite — centered, idle animation (P026: primary visual)
     if (cell.monster) {
-      const monKey = `monster_${cell.monster.typeId}`;
-      const monIcon = SpriteHelper.createSprite(scene, monKey, 0, 6, 54);
-      cont.add(monIcon);
+      const idleKey = `monster_${cell.monster.typeId}_idle`;
+      let monSprite;
+      if (scene.anims.exists(idleKey)) {
+        monSprite = scene.add.sprite(0, 0, idleKey).setOrigin(0.5);
+        monSprite.displayWidth = 40;
+        monSprite.displayHeight = 40;
+        const startFrame = Phaser.Math.Between(0, 3);
+        monSprite.play({ key: idleKey, startFrame });
+      } else {
+        const staticKey = `monster_${cell.monster.typeId}`;
+        monSprite = SpriteHelper.createSprite(scene, staticKey, 0, 0, 40);
+      }
+      cont.add(monSprite);
+      cont.setData('monsterSprite', monSprite);
     }
 
     // Store references
     cont.setData('cellId', cell.id);
+    cont.setData('baseSprite', baseSprite);
     cont.setData('defaultBorder', defaultBorder);
     cont.setData('highlightBorder', highlightBorder);
 
