@@ -184,7 +184,7 @@ export default class GameState {
     const monsterDef = this._dataManager.getMonster(typeId);
     const baseHp = monsterDef ? monsterDef.baseHp : 100;
     const hpMult = (monster.buffFlags && monster.buffFlags.hpMult) || 1;
-    cell.monster = { instanceId, typeId, currentHp: Math.round(baseHp * hpMult) };
+    cell.monster = { instanceId, typeId, currentHp: Math.round(baseHp * hpMult), maxHp: Math.round(baseHp * hpMult) };
     this.placeMonster(instanceId, cellId);
   }
 

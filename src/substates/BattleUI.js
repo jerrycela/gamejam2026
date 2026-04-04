@@ -51,6 +51,7 @@ export default class BattleUI {
 
     // Set battle mode on map
     this._dungeonMapUI.setBattleMode(true);
+    this._dungeonMapUI.showRoomBuffIndicators();
 
     // Bind BattleManager events
     this._bind('heroSpawn',       (data) => this._onHeroSpawn(data, session));
@@ -151,6 +152,7 @@ export default class BattleUI {
 
     // Clean up map
     this._dungeonMapUI.clearBattleHighlights();
+    this._dungeonMapUI.hideRoomBuffIndicators();
     this._dungeonMapUI.setBattleMode(false);
   }
 

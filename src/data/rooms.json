@@ -66,8 +66,7 @@
     "name": "寶藏室",
     "buffTarget": "greedy",
     "buffEffect": {
-      "aoeRange": 1,
-      "damageMultiplier": 1.2
+      "skillDamage": 1.2
     },
     "glamourValue": 5,
     "runeIcon": "rune_treasury",

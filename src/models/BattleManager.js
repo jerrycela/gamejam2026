@@ -272,6 +272,9 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     // Buff flags from roster (converted monsters get 1.15x)
     const buffFlags = this._getMonsterBuffFlags(monster.instanceId);
 
+    // Room buff (tag-based, separate from synergy)
+    const roomBuff = this._getRoomBuff(cell, monsterDef);
+
     // Synergy check
     const hasSynergy = cell.room && monsterDef.preferredRoom === cell.room.typeId;
     const synergyMult = hasSynergy ? monsterDef.synergyBonus.atkMultiplier : 1;
@@ -280,7 +283,8 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     hero.attackTimer += dt;
     if (hero.attackTimer >= hero.attackCd * 1000) {
       hero.attackTimer = 0;
-      let dmg = this._resolveAttack(hero.atk, monsterDef.baseDef);
+      const effectiveDef = Math.round(monsterDef.baseDef * roomBuff.defMult);
+      let dmg = this._resolveAttack(hero.atk, effectiveDef);
       // Combat trait bonus (anti_undead, anti_flying, etc.)
       const combatBonus = hero.combatTrait && monsterDef.type && monsterDef.type.includes(hero.combatTrait.targetType);
       if (combatBonus) {
@@ -348,12 +352,20 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
 
     // Monster attacks
     ctx.monsterAttackTimer += dt;
-    if (ctx.monsterAttackTimer >= monsterDef.attackCd * 1000) {
+    if (ctx.monsterAttackTimer >= monsterDef.attackCd * roomBuff.cdMult * 1000) {
       ctx.monsterAttackTimer = 0;
-      const monsterAtk = monsterDef.baseAtk * synergyMult * buffFlags.atkMult;
+      const monsterAtk = Math.round(monsterDef.baseAtk * synergyMult * buffFlags.atkMult * roomBuff.atkMult);
       const dmg = this._resolveAttack(monsterAtk, hero.def);
       this._applyDamageToHero(hero, dmg);
       this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: hero.instanceId, damage: dmg, cellId: ctx.cellId });
+      // Room buff: HP regen on attack
+      if (roomBuff.hpRegen > 0 && monster.currentHp < (monster.maxHp || Infinity)) {
+        const regen = Math.min(roomBuff.hpRegen, (monster.maxHp || Infinity) - monster.currentHp);
+        if (regen > 0) {
+          monster.currentHp += regen;
+          this.emit('monsterRegen', { cellId: ctx.cellId, monsterId: monster.instanceId, amount: regen });
+        }
+      }
     }
 
     // Monster skill (only if base skill has damage)
@@ -366,7 +378,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       }
       if (ctx.monsterSkillTimer >= skillDef.cd * 1000) {
         ctx.monsterSkillTimer = 0;
-        const dmg = skillDef.damage;
+        const dmg = Math.round(skillDef.damage * roomBuff.skillMult);
 
         if (skillDef.type === 'aoe') {
           const targets = this._heroes.filter(h => h.state === 'fighting' && h.hp > 0);
@@ -622,6 +634,32 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     return { hpMult: 1, atkMult: 1 };
   }
 
+  /**
+   * Compute room buff for a monster based on cell's room and monster's type tags.
+   * @returns {{ defMult: number, atkMult: number, cdMult: number, skillMult: number, hpRegen: number }}
+   */
+  _getRoomBuff(cell, monsterDef) {
+    const noBuff = { defMult: 1, atkMult: 1, cdMult: 1, skillMult: 1, hpRegen: 0 };
+    if (!cell.room) return noBuff;
+    const roomDef = this._dataManager.getRoom(cell.room.typeId);
+    if (!roomDef || !roomDef.buffEffect || !roomDef.buffTarget) return noBuff;
+    // Check if any of the monster's type tags match the room's buffTarget
+    if (!monsterDef.type || !monsterDef.type.includes(roomDef.buffTarget)) return noBuff;
+
+    const level = cell.room.level || 1;
+    const levelEntry = roomDef.levels && roomDef.levels.find(l => l.level === level);
+    const lvMult = levelEntry ? levelEntry.multiplier : 1;
+    const eff = roomDef.buffEffect;
+
+    return {
+      defMult: eff.def ? 1 + (eff.def - 1) * lvMult : 1,
+      atkMult: eff.atk ? 1 + (eff.atk - 1) * lvMult : 1,
+      cdMult: eff.attackCdMultiplier ? 1 - (1 - eff.attackCdMultiplier) * lvMult : 1,
+      skillMult: eff.skillDamage ? 1 + (eff.skillDamage - 1) * lvMult : 1,
+      hpRegen: eff.hpRegen ? Math.round(eff.hpRegen * lvMult) : 0,
+    };
+  }
+
   _resolveTrap(hero, cell) {
     if (!cell.trap) return { damage: 0, status: 'normal' };
     const trapDef = this._dataManager.getTrap(cell.trap.typeId);
@@ -696,7 +734,9 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       const def = this._dataManager.getMonster(cell.monster.typeId);
       const baseHp = def ? def.baseHp : 100;
       const buffFlags = this._getMonsterBuffFlags(cell.monster.instanceId);
-      cell.monster.currentHp = Math.round(baseHp * buffFlags.hpMult);
+      const maxHp = Math.round(baseHp * buffFlags.hpMult);
+      cell.monster.maxHp = maxHp;
+      cell.monster.currentHp = maxHp;
     }
   }
 

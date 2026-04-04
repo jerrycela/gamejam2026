@@ -37,6 +37,9 @@ export default class DungeonMapUI {
     // Pulse tweens for valid placement cells
     this._pulseTweens = [];
 
+    // Room buff indicator dots (shown during battle)
+    this._buffIndicators = [];
+
     // Build containers
     this._buildContainers();
     this._buildScrollInput();
@@ -87,6 +90,38 @@ export default class DungeonMapUI {
   /** Clear all battle-related cell highlights by rebuilding cells. */
   clearBattleHighlights() {
     this._rebuildCells();
+  }
+
+  /** Show colored dot overlays on cells where monster has active room buff. */
+  showRoomBuffIndicators() {
+    this.hideRoomBuffIndicators();
+    const BUFF_COLORS = {
+      dungeon: 0x6B8E9B, training: 0xC4956A, hatchery: 0x8BC49A,
+      lab: 0x9B7BBF, treasury: 0xD4A844
+    };
+    const dataManager = this.scene.registry.get('dataManager');
+    for (const cell of this.gameState.dungeonGrid) {
+      if (!cell.room || !cell.monster || cell.type !== 'normal') continue;
+      const roomDef = dataManager.getRoom(cell.room.typeId);
+      if (!roomDef || !roomDef.buffTarget) continue;
+      const monsterDef = dataManager.getMonster(cell.monster.typeId);
+      if (!monsterDef || !monsterDef.type || !monsterDef.type.includes(roomDef.buffTarget)) continue;
+      // Find cell visual position from cell data
+      const { x, y } = cell.position;
+      const color = BUFF_COLORS[cell.room.typeId] || 0xFFFFFF;
+      const dot = this.scene.add.circle(x + 20, y - 20, 5, color, 0.9);
+      dot.setDepth(10);
+      this._mapWorldContainer.add(dot);
+      this._buffIndicators.push(dot);
+    }
+  }
+
+  /** Remove room buff indicators. */
+  hideRoomBuffIndicators() {
+    for (const dot of this._buffIndicators) {
+      if (dot && dot.scene) dot.destroy();
+    }
+    this._buffIndicators = [];
   }
 
   /**
