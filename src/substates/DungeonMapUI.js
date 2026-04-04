@@ -1014,16 +1014,32 @@ export default class DungeonMapUI {
     yesBtn.on('pointerdown', (_p, _lx, _ly, event) => {
       event.stopPropagation();
       this._mapWorldContainer.remove(overlay, true);
-      this.gameState.setCellMonster(cell.id, monsterId, typeId);
-      this._clearSelection();
-      this.refresh();
+
+      // P026: animate old monster out, then deploy new one
+      const cellCont = this._cellContainers.find(c => c.getData('cellId') === cell.id);
+      const oldMonsterSprite = cellCont ? cellCont.getData('monsterSprite') : null;
+
+      this._playRemoveAnimation(oldMonsterSprite, () => {
+        this.gameState.setCellMonster(cell.id, monsterId, typeId);
+        this._resetSelectionState();
+        this._clearPlacementHighlights();
+
+        if (cellCont) {
+          cellCont.setData('monsterSprite', null);
+          this._playDeployAnimation(cellCont, cell, typeId, () => {
+            this._rebuildHand();
+          });
+        } else {
+          this._rebuildCells();
+          this._rebuildHand();
+        }
+      });
     });
 
     noBtn.on('pointerdown', (_p, _lx, _ly, event) => {
       event.stopPropagation();
       this._mapWorldContainer.remove(overlay, true);
       this._clearSelection();
-      this.refresh();
     });
 
     overlay.add([bg, label, yesBtn, noBtn]);
