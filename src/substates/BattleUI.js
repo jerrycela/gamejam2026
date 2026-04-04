@@ -179,7 +179,7 @@ export default class BattleUI {
 
     // Get portal position
     const portalCell = this._gameState.dungeonGrid.find(c => c.type === 'portal');
-    const pos = portalCell ? portalCell.position : { x: 100, y: 100 };
+    const pos = portalCell ? (portalCell.visualPos ?? portalCell.position) : { x: 100, y: 100 };
 
     const mapCont = this._dungeonMapUI.getMapWorldContainer();
     const scene = this._scene;
@@ -288,7 +288,8 @@ export default class BattleUI {
     const heartCell = this._gameState.dungeonGrid.find(c => c.type === 'heart');
     if (heartCell) {
       const label = shielded ? `${damage}(護盾)` : damage;
-      this._spawnDamagePopup(heartCell.position.x, heartCell.position.y - 20, label, '#9b59b6');
+      const hp = heartCell.visualPos ?? heartCell.position;
+      this._spawnDamagePopup(hp.x, hp.y - 20, label, '#9b59b6');
     }
   }
 
@@ -471,7 +472,8 @@ export default class BattleUI {
 
     // 大字技能名 popup
     const scene = this._scene;
-    const text = scene.add.text(heartCell.position.x, heartCell.position.y - 40, skillName, {
+    const hcPos = heartCell.visualPos ?? heartCell.position;
+    const text = scene.add.text(hcPos.x, hcPos.y - 40, skillName, {
       fontSize: '18px',
       color: skillId === 'shockwave' ? '#ff4444' : '#4488ff',
       fontFamily: 'monospace',
@@ -482,7 +484,7 @@ export default class BattleUI {
 
     const tween = scene.tweens.add({
       targets: text,
-      y: heartCell.position.y - 80,
+      y: hcPos.y - 80,
       alpha: 0,
       duration: 1200,
       ease: 'Power1',
@@ -545,7 +547,8 @@ export default class BattleUI {
     if (!heartCell) return;
 
     const scene = this._scene;
-    const text = scene.add.text(heartCell.position.x, heartCell.position.y - 40, skillName, {
+    const hsPos = heartCell.visualPos ?? heartCell.position;
+    const text = scene.add.text(hsPos.x, hsPos.y - 40, skillName, {
       fontSize: '18px',
       color: '#9b59b6',
       fontFamily: 'monospace',
@@ -581,7 +584,8 @@ export default class BattleUI {
     // Show heal popup at target's cell position (or heart cell for boss fight)
     const heartCell = this._gameState.dungeonGrid.find(c => c.type === 'heart');
     const pos = cellId ? this._dungeonMapUI.getCellPosition(cellId) : null;
-    const displayPos = pos || (heartCell ? { x: heartCell.position.x, y: heartCell.position.y } : null);
+    const hfp = heartCell ? (heartCell.visualPos ?? heartCell.position) : null;
+    const displayPos = pos || (hfp ? { x: hfp.x, y: hfp.y } : null);
     if (displayPos) {
       this._spawnDamagePopup(displayPos.x, displayPos.y - 20, `+${amount}`, '#2ecc71');
     }
