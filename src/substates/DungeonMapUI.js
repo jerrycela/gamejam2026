@@ -11,6 +11,15 @@ const PAN_THRESHOLD  = 8;
 const INERTIA_DECAY  = 0.92;
 const INERTIA_STOP   = 0.5;
 
+// --- Deploy / remove animation constants (P026) ---
+const DEPLOY_DROP_Y     = -30;
+const DEPLOY_DURATION   = 200;
+const DEPLOY_BOUNCE     = 1.05;
+const BUFF_DELAY        = 200;
+const BUFF_PULSE_DUR    = 300;
+const REMOVE_DURATION   = 150;
+const REMOVE_SCALE      = 0.8;
+
 export default class DungeonMapUI {
   /**
    * @param {Phaser.Scene} scene     - GameScene instance
@@ -963,10 +972,18 @@ export default class DungeonMapUI {
     if (!monster) { this._clearSelection(); return; }
 
     if (!cell.monster) {
-      // Empty monster slot — place directly
+      // Empty monster slot — place with animation (P026)
       this.gameState.setCellMonster(cell.id, monsterId, monster.typeId);
-      this._clearSelection();
-      this.refresh();
+      this._resetSelectionState();
+      this._clearPlacementHighlights();
+      const cellCont = this._cellContainers.find(c => c.getData('cellId') === cell.id);
+      if (cellCont) {
+        this._playDeployAnimation(cellCont, cell, monster.typeId, () => {
+          this._rebuildHand();
+        });
+      } else {
+        this._rebuildHand();
+      }
     } else {
       // Cell already has a monster — confirm swap
       this._showMonsterSwapConfirm(cell, monsterId, monster.typeId);
@@ -1011,6 +1028,105 @@ export default class DungeonMapUI {
 
     overlay.add([bg, label, yesBtn, noBtn]);
     this._mapWorldContainer.add(overlay);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Deploy / remove animations (P026)
+  // ---------------------------------------------------------------------------
+
+  _playDeployAnimation(cellCont, cell, monsterTypeId, onComplete) {
+    const scene = this.scene;
+    const idleKey = `monster_${monsterTypeId}_idle`;
+    let monSprite;
+    if (scene.anims.exists(idleKey)) {
+      monSprite = scene.add.sprite(0, DEPLOY_DROP_Y, idleKey).setOrigin(0.5);
+      monSprite.displayWidth = 40;
+      monSprite.displayHeight = 40;
+      monSprite.setAlpha(0);
+    } else {
+      const staticKey = `monster_${monsterTypeId}`;
+      monSprite = SpriteHelper.createSprite(scene, staticKey, 0, DEPLOY_DROP_Y, 40);
+      monSprite.setAlpha(0);
+    }
+    cellCont.add(monSprite);
+    cellCont.setData('monsterSprite', monSprite);
+
+    scene.tweens.add({
+      targets: monSprite,
+      y: 0,
+      alpha: 1,
+      duration: DEPLOY_DURATION,
+      ease: 'Back.Out',
+      onComplete: () => {
+        if (scene.anims.exists(idleKey)) {
+          const startFrame = Phaser.Math.Between(0, 3);
+          monSprite.play({ key: idleKey, startFrame });
+        }
+        scene.tweens.add({
+          targets: cellCont,
+          scaleX: DEPLOY_BOUNCE,
+          scaleY: DEPLOY_BOUNCE,
+          duration: 100,
+          yoyo: true,
+          ease: 'Sine.InOut',
+        });
+        this._maybePlayBuffEffect(cellCont, cell, monsterTypeId);
+        if (onComplete) onComplete();
+      },
+    });
+  }
+
+  _maybePlayBuffEffect(cellCont, cell, monsterTypeId) {
+    if (!cell.room) return;
+    const dataManager = this.scene.registry.get('dataManager');
+    const monsterDef = dataManager.getMonster(monsterTypeId);
+    const roomDef = dataManager.getRoom(cell.room.typeId);
+    if (!monsterDef || !roomDef) return;
+    if (!monsterDef.type || !monsterDef.type.includes(roomDef.buffTarget)) return;
+
+    const scene = this.scene;
+    const baseSprite = cellCont.getData('baseSprite');
+    if (baseSprite) {
+      scene.tweens.add({
+        targets: baseSprite,
+        alpha: 0.6,
+        duration: BUFF_PULSE_DUR / 2,
+        yoyo: true,
+        delay: BUFF_DELAY,
+        ease: 'Sine.InOut',
+      });
+    }
+    const roomIcon = cellCont.getData('roomIcon');
+    if (roomIcon) {
+      scene.tweens.add({
+        targets: roomIcon,
+        scaleX: 1.3,
+        scaleY: 1.3,
+        duration: BUFF_PULSE_DUR / 2,
+        yoyo: true,
+        delay: BUFF_DELAY,
+        ease: 'Sine.InOut',
+      });
+    }
+  }
+
+  _playRemoveAnimation(sprite, onComplete) {
+    if (!sprite) {
+      if (onComplete) onComplete();
+      return;
+    }
+    this.scene.tweens.add({
+      targets: sprite,
+      alpha: 0,
+      scaleX: REMOVE_SCALE,
+      scaleY: REMOVE_SCALE,
+      duration: REMOVE_DURATION,
+      ease: 'Sine.In',
+      onComplete: () => {
+        sprite.destroy();
+        if (onComplete) onComplete();
+      },
+    });
   }
 
   // ---------------------------------------------------------------------------
