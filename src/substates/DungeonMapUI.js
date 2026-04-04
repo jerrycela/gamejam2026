@@ -204,9 +204,11 @@ export default class DungeonMapUI {
     this._mapWorldContainer = scene.add.container(0, TOP_HUD_HEIGHT);
     this._rootContainer.add(this._mapWorldContainer);
 
-    // The bgTexture placeholder (will be filled in _rebuildBackground)
-    this._bgTexture = scene.add.renderTexture(0, 0, MAP_WORLD_W, MAP_WORLD_H);
-    this._mapWorldContainer.add(this._bgTexture);
+    // Background graphics (direct, no RenderTexture — avoids Canvas renderer truncation)
+    this._bgGfx = scene.add.graphics();
+    this._mapWorldContainer.add(this._bgGfx);
+    this._pathGfx = scene.add.graphics();
+    this._mapWorldContainer.add(this._pathGfx);
     this._forecastGfx = scene.add.graphics();
     this._mapWorldContainer.add(this._forecastGfx);
 
@@ -239,31 +241,35 @@ export default class DungeonMapUI {
   // ---------------------------------------------------------------------------
 
   _rebuildBackground() {
-    const scene = this.scene;
-    const rt = this._bgTexture;
-    rt.clear();
+    this._bgGfx.clear();
+    this._pathGfx.clear();
 
     // 1. Parchment base
-    const bgGfx = scene.add.graphics();
-    bgGfx.fillStyle(0x2d1b0e, 1);
-    bgGfx.fillRect(0, 0, MAP_WORLD_W, MAP_WORLD_H);
+    this._bgGfx.fillStyle(0x2d1b0e, 1);
+    this._bgGfx.fillRect(0, 0, MAP_WORLD_W, MAP_WORLD_H);
 
-    // Noise overlay — subtle darker spots for texture
-    bgGfx.fillStyle(0x1a1206, 0.3);
-    for (let ny = 0; ny < MAP_WORLD_H; ny += 12) {
-      for (let nx = 0; nx < MAP_WORLD_W; nx += 12) {
-        if (Math.random() < 0.3) {
-          bgGfx.fillRect(nx, ny, 8, 8);
+    // Noise overlay — layered texture for parchment feel
+    this._bgGfx.fillStyle(0x3d2515, 0.4);
+    for (let ny = 0; ny < MAP_WORLD_H; ny += 10) {
+      for (let nx = 0; nx < MAP_WORLD_W; nx += 10) {
+        if (Math.random() < 0.4) {
+          this._bgGfx.fillRect(nx, ny, 6, 6);
         }
       }
     }
-    rt.draw(bgGfx, 0, 0);
-    bgGfx.destroy();
+    this._bgGfx.fillStyle(0x150d06, 0.25);
+    for (let ny = 0; ny < MAP_WORLD_H; ny += 18) {
+      for (let nx = 0; nx < MAP_WORLD_W; nx += 18) {
+        if (Math.random() < 0.3) {
+          this._bgGfx.fillRect(nx, ny, 12, 12);
+        }
+      }
+    }
 
     // 2. Path lines + decorations
     const grid = this.gameState.dungeonGrid;
     const cellMap = new Map(grid.map(c => [c.id, c]));
-    const pathGfx = scene.add.graphics();
+    const pathGfx = this._pathGfx;
 
     for (const cell of grid) {
       for (const targetId of cell.connections) {
@@ -276,50 +282,58 @@ export default class DungeonMapUI {
         const bx = target.visualPos?.x ?? target.position.x;
         const by = target.visualPos?.y ?? target.position.y;
 
-        // Main path line
-        pathGfx.lineStyle(4, 0x8B4513, 0.8);
+        const dx = bx - ax;
+        const dy = by - ay;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx);
+
+        // Glow line (wide, translucent)
+        pathGfx.lineStyle(10, 0xCD853F, 0.15);
         pathGfx.beginPath();
         pathGfx.moveTo(ax, ay);
         pathGfx.lineTo(bx, by);
         pathGfx.strokePath();
 
-        // Chain link stamps along path
-        const dx = bx - ax;
-        const dy = by - ay;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const steps = Math.floor(dist / 30);
+        // Main path line
+        pathGfx.lineStyle(6, 0xCD853F, 0.7);
+        pathGfx.beginPath();
+        pathGfx.moveTo(ax, ay);
+        pathGfx.lineTo(bx, by);
+        pathGfx.strokePath();
 
+        // Chain link rings along path
+        const steps = Math.floor(dist / 24);
         for (let s = 1; s < steps; s++) {
           const t = s / steps;
+          const distFromStart = dist * t;
+          const distFromEnd = dist * (1 - t);
+          if (distFromStart < 20 || distFromEnd < 20) continue;
+
           const cx = ax + dx * t;
           const cy = ay + dy * t;
 
-          // Skip near endpoints (within 5px of cell center)
-          const distFromStart = dist * t;
-          const distFromEnd = dist * (1 - t);
-          if (distFromStart < 5 || distFromEnd < 5) continue;
-
-          // Chain ring: stroked circle
-          pathGfx.lineStyle(1.5, 0x8B4513, 0.9);
-          pathGfx.strokeCircle(cx, cy, 4);
+          // Chain ring: stroked ellipse (rotated via 2 overlapping circles)
+          pathGfx.lineStyle(2, 0xCD853F, 0.8);
+          pathGfx.strokeCircle(cx, cy, 6);
+          pathGfx.fillStyle(0x2d1b0e, 0.5);
+          pathGfx.fillCircle(cx, cy, 4);
         }
 
         // Arrow at downstream end
-        const angle = Math.atan2(dy, dx);
-        const arrowDist = 12;
-        const arrowSize = 6;
+        const arrowDist = 18;
+        const arrowSize = 10;
         const arrowT = Math.max(0, 1 - arrowDist / dist);
         const arrowX = ax + dx * arrowT;
         const arrowY = ay + dy * arrowT;
 
-        pathGfx.fillStyle(0x8B4513, 0.9);
+        pathGfx.fillStyle(0xCD853F, 0.9);
         pathGfx.fillTriangle(
           arrowX + Math.cos(angle) * arrowSize,
           arrowY + Math.sin(angle) * arrowSize,
-          arrowX + Math.cos(angle + 2.5) * arrowSize * 0.6,
-          arrowY + Math.sin(angle + 2.5) * arrowSize * 0.6,
-          arrowX + Math.cos(angle - 2.5) * arrowSize * 0.6,
-          arrowY + Math.sin(angle - 2.5) * arrowSize * 0.6,
+          arrowX + Math.cos(angle + 2.4) * arrowSize * 0.5,
+          arrowY + Math.sin(angle + 2.4) * arrowSize * 0.5,
+          arrowX + Math.cos(angle - 2.4) * arrowSize * 0.5,
+          arrowY + Math.sin(angle - 2.4) * arrowSize * 0.5,
         );
       }
     }
@@ -329,18 +343,25 @@ export default class DungeonMapUI {
       if (cell.connections.length > 1 || this._getIncomingCount(cell.id, grid) > 1) {
         const cx = cell.visualPos?.x ?? cell.position.x;
         const cy = cell.visualPos?.y ?? cell.position.y;
-        pathGfx.fillStyle(0xf0c040, 0.7);
+        // Glow
+        pathGfx.fillStyle(0xf0c040, 0.25);
         pathGfx.fillPoints([
-          { x: cx, y: cy - 8 },
-          { x: cx + 6, y: cy },
-          { x: cx, y: cy + 8 },
-          { x: cx - 6, y: cy },
+          { x: cx, y: cy - 14 },
+          { x: cx + 10, y: cy },
+          { x: cx, y: cy + 14 },
+          { x: cx - 10, y: cy },
+        ], true);
+        // Core diamond
+        pathGfx.fillStyle(0xf0c040, 0.85);
+        pathGfx.fillPoints([
+          { x: cx, y: cy - 10 },
+          { x: cx + 7, y: cy },
+          { x: cx, y: cy + 10 },
+          { x: cx - 7, y: cy },
         ], true);
       }
     }
 
-    rt.draw(pathGfx, 0, 0);
-    pathGfx.destroy();
   }
 
   /** Count incoming connections to a cell. */
