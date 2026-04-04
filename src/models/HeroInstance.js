@@ -36,6 +36,7 @@ export default class HeroInstance {
     if (this.trait && this.trait.id === 'first_trap_skip') {
       this.traitState.firstTrapUsed = false;
     }
+    this.stolenGold = 0;
     this.effectiveMoveDuration = MOVE_DURATION;
   }
 }

@@ -72,6 +72,8 @@ export default class BattleUI {
     this._bind('bossSkillEnd',    (data) => this._onBossSkillEnd(data, session));
     this._bind('heroHeal',        (data) => this._onHeroHeal(data, session));
     this._bind('heroShield',      (data) => this._onHeroShield(data, session));
+    this._bind('goldSteal',       (data) => this._onGoldSteal(data, session));
+    this._bind('goldReturn',      (data) => this._onGoldReturn(data, session));
   }
 
   update(dt) {
@@ -386,6 +388,21 @@ export default class BattleUI {
       },
     });
     this._tweens.push(tween);
+  }
+
+  _onGoldSteal({ cellId, amount }, session) {
+    if (this._sessionId !== session) return;
+    if (this._battleManager.getSpeedMultiplier() >= 10) return;
+    const pos = this._dungeonMapUI.getCellPosition(cellId);
+    if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, `-${amount}G`, '#f1c40f');
+    if (this._scene.topHUD) this._scene.topHUD.update();
+  }
+
+  _onGoldReturn({ cellId, amount }, session) {
+    if (this._sessionId !== session) return;
+    const pos = this._dungeonMapUI.getCellPosition(cellId);
+    if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, `+${amount}G`, '#2ecc71');
+    if (this._scene.topHUD) this._scene.topHUD.update();
   }
 
   _onBattleEnd({ result, kills, goldEarned }, session) {

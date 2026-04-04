@@ -161,6 +161,16 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     const cell = this._gameState.getCell(hero.currentCellId);
     if (!cell) return;
 
+    // Gold steal trait (thief) — steal on every non-heart cell arrival
+    if (hero.trait && hero.trait.id === 'gold_steal' && cell.type !== 'heart') {
+      const stealAmt = Math.min(hero.trait.amount, this._gameState.gold);
+      if (stealAmt > 0) {
+        this._gameState.gold -= stealAmt;
+        hero.stolenGold += stealAmt;
+        this.emit('goldSteal', { hero, cellId: hero.currentCellId, amount: stealAmt });
+      }
+    }
+
     // Heart cell -> fight boss
     if (cell.type === 'heart') {
       hero.state = 'fighting';
@@ -570,10 +580,14 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     hero.state = 'dead';
     this._gameState.killCount += 1;
 
-    // Gold reward
+    // Gold reward + return stolen gold
     const heroDef = this._dataManager.getHero(hero.typeId);
     const goldReward = (heroDef && heroDef.goldValue) || 50;
-    this._gameState.gold += goldReward;
+    const returnedGold = hero.stolenGold || 0;
+    this._gameState.gold += goldReward + returnedGold;
+    if (returnedGold > 0) {
+      this.emit('goldReturn', { hero, cellId, amount: returnedGold });
+    }
 
     // Advance torture progress
     const completed = this._gameState.advanceTortureProgress();
@@ -816,8 +830,8 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     const [min, max] = countRange[eventType];
     const count = min + Math.floor(Math.random() * (max - min + 1));
 
-    const normalPool = ['trainee_swordsman', 'light_archer'];
-    const fullPool = ['trainee_swordsman', 'light_archer', 'priest', 'fire_mage', 'holy_knight'];
+    const normalPool = ['trainee_swordsman', 'light_archer', 'thief'];
+    const fullPool = ['trainee_swordsman', 'light_archer', 'priest', 'fire_mage', 'holy_knight', 'thief'];
     const weightKey = { normalBattle: 'normal', eliteBattle: 'elite', bossBattle: 'boss' }[eventType];
     const pool = eventType === 'normalBattle' ? normalPool : fullPool;
 
