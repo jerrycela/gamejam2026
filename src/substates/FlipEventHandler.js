@@ -46,6 +46,22 @@ export default class FlipEventHandler {
       this.scene.events.once('battleUiComplete', () => {
         this.gameScene.battleUI.stop();
         this.gameScene.hideBattleOverlay();
+
+        // Elite battle bonus: free card on victory
+        if (flipCard.eventType === 'eliteBattle' && this.gameScene.battleManager.lastResult === 'defenseSuccess') {
+          const dm = this.gameScene.dataManager;
+          const ms = this.gameScene.metaState;
+          const pool = [
+            ...buildUnlockedPool(dm.rooms, 'rooms', ms).map(r => ({ type: 'room', id: r.id })),
+            ...buildUnlockedPool(dm.traps, 'traps', ms).map(t => ({ type: 'trap', id: t.id })),
+          ];
+          if (pool.length > 0) {
+            const pick = pool[Math.floor(Math.random() * pool.length)];
+            this.gameState.hand.push({ type: pick.type, id: pick.id, starRating: 2 });
+            this._showToast('精英獎勵：獲得一張卡牌！', 1200);
+          }
+        }
+
         this.gameScene.returnToPreviousSubstate();
         this.gameState.resolveCard(flipCard.row, flipCard.col);
         this.gameScene.topHUD.update();
