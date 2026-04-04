@@ -53,7 +53,9 @@ export default class GameState {
 
     // --- Dungeon map (populated later by the map generator) ---
     /** @type {object[]} Array of cell objects; structure defined by MapGenerator */
-    this.dungeonGrid = GridTopologyGenerator.generate();
+    const gridResult = GridTopologyGenerator.generate();
+    this.dungeonGrid = gridResult.cells;
+    this.mapSeed = gridResult.mapSeed; // for jitter reproducibility
 
     // --- Flip matrix (populated later during map setup) ---
     /** @type {any[]} */
