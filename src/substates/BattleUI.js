@@ -273,6 +273,26 @@ export default class BattleUI {
 
     visual.lerpFrom = from;
     visual.lerpTo = to;
+
+    // Skip walk animation in high speed mode
+    if (this._battleManager.getSpeedMultiplier() >= 10) return;
+
+    // Switch to walk sprite
+    if (visual.walkSprite) {
+      visual.idleSprite.setVisible(false);
+      visual.walkSprite.setVisible(true);
+      visual.walkSprite.setFlipX(to.x < from.x);
+
+      const walkKey = visual.walkSprite.texture.key;
+      if (this._scene.anims.exists(walkKey)) {
+        visual.walkSprite.play(walkKey);
+      }
+    }
+
+    // Pause float tween
+    if (visual.floatTween && visual.floatTween.isPlaying()) {
+      visual.floatTween.pause();
+    }
   }
 
   _onHeroArrive({ hero, cellId }, session) {
