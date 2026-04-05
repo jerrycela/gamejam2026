@@ -687,9 +687,31 @@ export default class BattleUI {
       this._tweens.push(tween);
     }
 
-    // Death sequence: red flash → shrink + sink
+    // Death sequence: red flash → shrink + sink + kill ring burst
     const sprite = visual.idleSprite || visual.sprite;
     if (sprite) sprite.setTint(0xff0000);
+
+    // Kill ring burst effect at death position
+    if (this._battleManager.getSpeedMultiplier() < 10) {
+      const mapCont = this._dungeonMapUI.getMapWorldContainer();
+      const ring = this._scene.add.graphics();
+      ring.lineStyle(2, 0xf1c40f, 0.8);
+      ring.strokeCircle(0, 0, 5);
+      ring.setPosition(visual.container.x, visual.container.y);
+      ring.setDepth(1999);
+      mapCont.add(ring);
+      this._transients.push(ring);
+
+      const ringTween = this._scene.tweens.add({
+        targets: ring,
+        scaleX: 3, scaleY: 3,
+        alpha: 0,
+        duration: 400,
+        ease: 'Quad.Out',
+        onComplete: () => { ring.destroy(); },
+      });
+      this._tweens.push(ringTween);
+    }
 
     // Flash red for 200ms, then shrink + sink
     const flashTimer = this._scene.time.delayedCall(200, () => {
