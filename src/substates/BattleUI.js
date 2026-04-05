@@ -751,18 +751,45 @@ export default class BattleUI {
     bannerCont.setAlpha(0);
     this._transients.push(bannerCont);
 
-    const bg = scene.add.rectangle(0, 0, 280, 100, 0x000000, 0.85)
+    // Build MVP summary line
+    let mvpLine = '';
+    const dataManager = scene.registry.get('dataManager');
+    if (this._mvpCellId) {
+      const mvpCell = this._gameState.getCell(this._mvpCellId);
+      const mvpName = mvpCell?.monster ? (dataManager.getMonster(mvpCell.monster.typeId)?.name || mvpCell.monster.typeId) : '?';
+      mvpLine = `MVP: ${mvpName} (${this._mvpScore})`;
+      if (this._weakCellId) {
+        const weakCell = this._gameState.getCell(this._weakCellId);
+        const weakName = weakCell?.monster ? (dataManager.getMonster(weakCell.monster.typeId)?.name || weakCell.monster.typeId) : '?';
+        mvpLine += ` | 最低: ${weakName} (${this._weakScore})`;
+      }
+    }
+
+    const hasMvp = mvpLine.length > 0;
+    const bannerH = hasMvp ? 140 : 100;
+
+    const bg = scene.add.rectangle(0, 0, 280, bannerH, 0x000000, 0.85)
       .setStrokeStyle(2, isSuccess ? 0x2ecc71 : 0xe74c3c);
 
-    const titleText = scene.add.text(0, -22, titleStr, {
+    const titleText = scene.add.text(0, -bannerH / 2 + 28, titleStr, {
       fontSize: '22px', color: titleColor, fontFamily: FONT_FAMILY, fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    const subText = scene.add.text(0, 16, subStr, {
+    const subText = scene.add.text(0, -bannerH / 2 + 58, subStr, {
       fontSize: '14px', color: '#cccccc', fontFamily: FONT_FAMILY,
     }).setOrigin(0.5);
 
-    bannerCont.add([bg, titleText, subText]);
+    const bannerChildren = [bg, titleText, subText];
+
+    if (hasMvp) {
+      const mvpText = scene.add.text(0, -bannerH / 2 + 90, mvpLine, {
+        fontSize: '11px', color: '#ffd700', fontFamily: FONT_FAMILY,
+        wordWrap: { width: 260 },
+      }).setOrigin(0.5);
+      bannerChildren.push(mvpText);
+    }
+
+    bannerCont.add(bannerChildren);
 
     // Fade in 300ms
     const fadeInTween = scene.tweens.add({
@@ -774,8 +801,8 @@ export default class BattleUI {
           bannerCont.destroy();
           return;
         }
-        // Hold 1.2s then emit battleUiComplete
-        const holdTimer = scene.time.delayedCall(1200, () => {
+        // Hold 3s then emit battleUiComplete (extended for MVP report readability)
+        const holdTimer = scene.time.delayedCall(3000, () => {
           bannerCont.destroy();
           if (this._sessionId !== session) return;
           scene.events.emit('battleUiComplete');
@@ -963,6 +990,53 @@ export default class BattleUI {
       mapCont.add(text);
       this._transients.push(text);
     }
+
+    // --- MVP / Weakest cell highlights ---
+    const monsterEntries = Object.entries(cellStats)
+      .filter(([cellId, s]) => {
+        const cell = this._gameState.getCell(cellId);
+        return cell?.monster && (s.damage + s.trapDamage > 0);
+      })
+      .map(([cellId, s]) => ({ cellId, score: s.damage + s.trapDamage }));
+
+    if (monsterEntries.length < 2) return;
+
+    monsterEntries.sort((a, b) => b.score - a.score);
+    const mvp = monsterEntries[0];
+    const weak = monsterEntries[monsterEntries.length - 1];
+    const showWeak = weak.score < mvp.score; // skip if all tied
+
+    // MVP highlight + badge
+    this._dungeonMapUI.setCellHighlight(mvp.cellId, 0xffd700);
+    const mvpPos = this._dungeonMapUI.getCellPosition(mvp.cellId);
+    if (mvpPos) {
+      const badge = scene.add.text(mvpPos.x, mvpPos.y - 44, 'MVP', {
+        fontSize: '11px', color: '#ffd700', fontFamily: FONT_FAMILY, fontStyle: 'bold',
+        backgroundColor: '#000000cc', padding: { x: 4, y: 2 },
+      }).setOrigin(0.5, 1).setDepth(2060);
+      mapCont.add(badge);
+      this._transients.push(badge);
+    }
+
+    // Weakest highlight + badge
+    if (showWeak) {
+      this._dungeonMapUI.setCellHighlight(weak.cellId, 0xff4444);
+      const weakPos = this._dungeonMapUI.getCellPosition(weak.cellId);
+      if (weakPos) {
+        const badge = scene.add.text(weakPos.x, weakPos.y - 44, '!', {
+          fontSize: '13px', color: '#ff4444', fontFamily: FONT_FAMILY, fontStyle: 'bold',
+          backgroundColor: '#000000cc', padding: { x: 6, y: 2 },
+        }).setOrigin(0.5, 1).setDepth(2060);
+        mapCont.add(badge);
+        this._transients.push(badge);
+      }
+    }
+
+    // Store for banner use
+    this._mvpCellId = mvp.cellId;
+    this._mvpScore = mvp.score;
+    this._weakCellId = showWeak ? weak.cellId : null;
+    this._weakScore = showWeak ? weak.score : 0;
   }
 
   // ---------------------------------------------------------------------------
