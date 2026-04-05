@@ -70,7 +70,7 @@ Replace the automatic battle trigger with a player-initiated flow:
 **UI Change:**
 - Always visible on dungeon map tab: `迎戰 Day N` button
 - Button position: top-right area of the map viewport, styled as a red call-to-action
-- Button disabled (grayed) if `hasAnyDefense() === false` — tooltip: "至少部署一隻怪物"
+- Button disabled (grayed) if `hasAnyDefense() === false` — label changes to "至少部署一隻怪物" in smaller font
 
 **Flow:**
 1. Player taps "迎戰 Day N"
