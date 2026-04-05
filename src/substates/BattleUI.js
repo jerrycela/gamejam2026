@@ -3,7 +3,6 @@
 
 import { MOVE_DURATION } from '../utils/constants.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
-import spriteManifest from '../data/spriteManifest.js';
 
 const HP_BAR_W = 30;
 const HP_BAR_H = 4;
@@ -341,11 +340,13 @@ export default class BattleUI {
     });
     this._timers.push(tintTimer);
 
-    // Kill existing hurt tween if any
+    // Kill existing hurt tween and reset both sprites' x offset
+    // (previous tween may have targeted the other sprite)
     if (visual.hurtTween && visual.hurtTween.isPlaying()) {
       visual.hurtTween.stop();
-      targetSprite.x = 0; // reset offset
     }
+    visual.idleSprite.x = 0;
+    if (visual.walkSprite) visual.walkSprite.x = 0;
 
     // Shake the sprite (not container — container.x is mutated by lerp in update())
     visual.hurtTween = scene.tweens.add({
