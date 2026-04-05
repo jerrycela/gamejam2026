@@ -322,6 +322,46 @@ export default class BattleUI {
     }
   }
 
+  /** Flash red + shake for hero taking damage. */
+  _playHurtEffect(heroInstanceId) {
+    const visual = this._heroVisuals.get(heroInstanceId);
+    if (!visual) return;
+    if (this._battleManager.getSpeedMultiplier() >= 10) return;
+
+    const scene = this._scene;
+
+    // Determine which sprite is visible
+    const targetSprite = (visual.walkSprite && visual.walkSprite.visible)
+      ? visual.walkSprite : visual.idleSprite;
+
+    // Red tint flash
+    targetSprite.setTint(0xff0000);
+    const tintTimer = scene.time.delayedCall(100, () => {
+      if (targetSprite.scene) targetSprite.clearTint();
+    });
+    this._timers.push(tintTimer);
+
+    // Kill existing hurt tween if any
+    if (visual.hurtTween && visual.hurtTween.isPlaying()) {
+      visual.hurtTween.stop();
+      targetSprite.x = 0; // reset offset
+    }
+
+    // Shake the sprite (not container — container.x is mutated by lerp in update())
+    visual.hurtTween = scene.tweens.add({
+      targets: targetSprite,
+      x: 2,
+      duration: 50,
+      yoyo: true,
+      repeat: 3,
+      ease: 'Sine.InOut',
+      onComplete: () => {
+        targetSprite.x = 0;
+      },
+    });
+    this._tweens.push(visual.hurtTween);
+  }
+
   _onCombatStart({ cellId }, session) {
     if (this._sessionId !== session) return;
     this._dungeonMapUI.setCellHighlight(cellId, 0xff0000);
@@ -337,6 +377,7 @@ export default class BattleUI {
       if (visual) {
         const pos = visual.container;
         this._spawnDamagePopup(pos.x, pos.y - 20, damage, '#e74c3c');
+        this._playHurtEffect(targetId);
       }
     } else if (targetType === 'hero') {
       // Monster attacks hero
@@ -344,6 +385,7 @@ export default class BattleUI {
       if (visual) {
         const pos = visual.container;
         this._spawnDamagePopup(pos.x, pos.y - 20, damage, '#e74c3c');
+        this._playHurtEffect(targetId);
       }
     } else if (targetType === 'monster') {
       // Hero attacks monster: show popup at cell position
@@ -648,6 +690,7 @@ export default class BattleUI {
     const visual = this._heroVisuals.get(targetId);
     if (visual) {
       this._spawnDamagePopup(visual.container.x, visual.container.y - 20, damage, '#9b59b6');
+      this._playHurtEffect(targetId);
     }
   }
 
