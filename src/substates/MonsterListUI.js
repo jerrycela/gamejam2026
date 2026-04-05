@@ -1,7 +1,8 @@
 import { TOP_HUD_HEIGHT, FONT_FAMILY } from '../utils/constants.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
 
-const ROW_HEIGHT = 72;
+const ROW_HEIGHT_COMPACT = 72;
+const ROW_HEIGHT_LARGE = 110;
 const MAX_VISIBLE = 8;
 
 const STATUS_COLORS = {
@@ -35,15 +36,16 @@ export default class MonsterListUI {
       return;
     }
 
+    const rowH = roster.length <= 4 ? ROW_HEIGHT_LARGE : ROW_HEIGHT_COMPACT;
     const startY = TOP_HUD_HEIGHT + 60;
     const visible = roster.slice(0, MAX_VISIBLE);
 
     for (let i = 0; i < visible.length; i++) {
-      this._buildRow(visible[i], width, startY + i * ROW_HEIGHT);
+      this._buildRow(visible[i], width, startY + i * rowH, rowH);
     }
 
     if (roster.length > MAX_VISIBLE) {
-      const more = this._scene.add.text(width / 2, startY + MAX_VISIBLE * ROW_HEIGHT, `+${roster.length - MAX_VISIBLE} ...`, {
+      const more = this._scene.add.text(width / 2, startY + MAX_VISIBLE * rowH, `+${roster.length - MAX_VISIBLE} ...`, {
         fontSize: '12px', color: '#aaaacc', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5);
       this._rootContainer.add(more);
@@ -57,7 +59,7 @@ export default class MonsterListUI {
     this._rootContainer.add(title);
   }
 
-  _buildRow(instance, width, y) {
+  _buildRow(instance, width, y, rowH = ROW_HEIGHT_COMPACT) {
     const monsterDef = this._dataManager.getMonster(instance.typeId);
     const name = monsterDef ? monsterDef.name : instance.typeId;
     const baseHp = monsterDef ? monsterDef.baseHp : 100;
@@ -67,35 +69,42 @@ export default class MonsterListUI {
     const isDeployed = instance.placedCellId !== null;
     const status = isDeployed ? STATUS_COLORS.deployed : STATUS_COLORS.standby;
 
+    const isLarge = rowH >= ROW_HEIGHT_LARGE;
+    const spriteSize = isLarge ? 52 : 32;
+
     // Row background
-    const rowBg = this._scene.add.rectangle(width / 2, y, width - 20, ROW_HEIGHT - 4, 0x1a1a2e, 0.8)
+    const rowBg = this._scene.add.rectangle(width / 2, y, width - 20, rowH - 4, 0x1a1a2e, 0.8)
       .setStrokeStyle(1, 0x333355);
 
     // Monster sprite icon (left side)
-    const spriteIcon = SpriteHelper.createSprite(this._scene, `monster_${instance.typeId}`, 36, y, 32);
+    const spriteX = isLarge ? 46 : 36;
+    const spriteIcon = SpriteHelper.createSprite(this._scene, `monster_${instance.typeId}`, spriteX, y, spriteSize);
 
     // Monster name (left)
-    const nameText = this._scene.add.text(56, y - 12, name, {
-      fontSize: '16px', color: '#ffffff', fontFamily: FONT_FAMILY, fontStyle: 'bold',
+    const textX = isLarge ? 80 : 56;
+    const nameOffset = isLarge ? -18 : -12;
+    const statsOffset = isLarge ? 6 : 12;
+    const nameText = this._scene.add.text(textX, y + nameOffset, name, {
+      fontSize: isLarge ? '18px' : '16px', color: '#ffffff', fontFamily: FONT_FAMILY, fontStyle: 'bold',
     }).setOrigin(0, 0.5);
 
     // HP / ATK (left, below name)
-    const statsText = this._scene.add.text(56, y + 12, `HP ${displayHp}  ATK ${displayAtk}`, {
-      fontSize: '12px', color: '#aaaaaa', fontFamily: FONT_FAMILY,
+    const statsText = this._scene.add.text(textX, y + statsOffset, `HP ${displayHp}  ATK ${displayAtk}`, {
+      fontSize: isLarge ? '14px' : '12px', color: '#aaaaaa', fontFamily: FONT_FAMILY,
     }).setOrigin(0, 0.5);
 
     // Buff badge
     const elements = [rowBg, spriteIcon, nameText, statsText];
 
     if (instance.buffFlags && instance.buffFlags.converted) {
-      const badge = this._scene.add.text(nameText.x + nameText.width + 8, y - 12, '強化', {
+      const badge = this._scene.add.text(nameText.x + nameText.width + 8, y + nameOffset, '強化', {
         fontSize: '11px', color: '#f1c40f', fontFamily: FONT_FAMILY,
       }).setOrigin(0, 0.5);
       elements.push(badge);
     }
 
     // Status badge
-    const statusBadge = this._scene.add.text(width - 120, y - 12, status.label, {
+    const statusBadge = this._scene.add.text(width - 120, y + nameOffset, status.label, {
       fontSize: '12px', color: status.text, fontFamily: FONT_FAMILY,
     }).setOrigin(0.5);
     elements.push(statusBadge);
