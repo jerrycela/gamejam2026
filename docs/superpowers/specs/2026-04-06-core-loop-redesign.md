@@ -31,7 +31,7 @@ Add new **monster** card type. New weights:
 
 Total weight: 75 (renormalized automatically by weighted random).
 
-**finalBattle** remains unchanged — injected face-up on Day 3+ with escalating probability.
+**finalBattle** card: remains injected face-up on Day 3+ with escalating probability. When finalBattle appears, it replaces one non-battle card as before. Since there are no more battle cards in the pool, the replacement target is any card. finalBattle is the ONLY battle-type card that can appear in the matrix.
 
 ### 2. Draw Cost — 5 Free Per Day
 
@@ -46,6 +46,8 @@ Update the "抽卡" button label:
 - When free draws remain: `抽卡 [免費] (N/5)`
 - When paid: `抽卡 [XXG]`
 
+The matrix is still fixed at 15 cards. "Flipping" means revealing a face-down card (same as now). No extra cards are generated beyond the 15-card matrix. Once all 15 are flipped, the flip phase is complete — no paid flips beyond the matrix.
+
 ### 3. Monster Card — Pick 1 of 3
 
 When a monster card is flipped:
@@ -59,22 +61,29 @@ When a monster card is flipped:
 
 If fewer than 3 monster types are unlocked, show all available (minimum 1).
 
+**Star rating and monster stats:** Star rating affects the monster's combat effectiveness. Currently monsters have flat base stats. For simplicity in this iteration, star rating applies a multiplier to monster HP and ATK: 1-star = 1.0x, 2-star = 1.3x, 3-star = 1.6x. This is stored on the monster instance as `starRating` and applied during battle calculations in BattleManager.
+
 ### 4. Dungeon Map — "Start Battle" Button
 
 Replace the automatic battle trigger with a player-initiated flow:
 
 **UI Change:**
-- After all 15 cards are resolved (or any time), show a prominent button on the dungeon map: `迎戰 Day N`
+- Always visible on dungeon map tab: `迎戰 Day N` button
 - Button position: top-right area of the map viewport, styled as a red call-to-action
 - Button disabled (grayed) if `hasAnyDefense() === false` — tooltip: "至少部署一隻怪物"
 
 **Flow:**
 1. Player taps "迎戰 Day N"
 2. Confirmation toast: "英雄來襲！" (1000ms)
-3. Battle starts (same as current `_handleBattle` logic)
+3. Battle starts (reuses current battle logic from BattleManager/BattleUI)
 4. On battle end → show result banner → advance day → return to flip matrix
 
-**Important:** Player can also continue flipping (paid) even after matrix complete, before initiating battle. This allows accumulating resources across multiple flip rounds before fighting.
+**Day advancement is ONLY triggered by:**
+- Completing a battle via the "迎戰" button → `advanceDay()` → next day flip matrix
+
+**finalBattle does NOT advance the day** — it ends the entire run via `_endRun()` → ResultScene, as defined in P008. finalBattle is a run-ending event, not a day-progression event.
+
+There is no other way to advance the day. The player must fight via "迎戰" to progress to the next day.
 
 ### 5. Hero Difficulty Curve — Quantity Then Quality
 
@@ -90,42 +99,44 @@ Replace the current flat hero generation with a day-scaled system:
 | 6 | 4-5 | same as Day 5 | 1.75x |
 | 7+ | 5 | + hero_of_legend | 2.0x |
 
-- Stat multiplier applies to HP and ATK (not DEF or attackCd)
-- Glamour scaling still applies on top: `finalMult = dayMult * (1 + glamour/500)`
-- Hero count is randomized within the range shown
+- Stat multiplier applies to HP and ATK only (not DEF or attackCd)
+- Glamour scaling is REPLACED by day scaling, not stacked. `finalMult = dayMult` only. This prevents the exponential blowup from double-multiplying. Glamour can be repurposed later if needed.
+- Hero count is randomized within the range shown (uniform)
 
 ### 6. Affected Files
 
 | File | Change |
 |------|--------|
-| `src/utils/constants.js` | Remove battle card weights, add monster weight, add `HERO_DAY_SCALING` config, update `FREE_DRAW_COUNT` |
+| `src/utils/constants.js` | Remove battle card weights, add monster weight + color, add `HERO_DAY_SCALING` table, add `FREE_DRAW_COUNT = 5` |
 | `src/data/drawCosts.json` | Update cost array for post-free draws |
 | `src/models/FlipMatrixGenerator.js` | Remove battle types from pool, add monster type |
-| `src/substates/FlipEventHandler.js` | Add `_handleMonster()`, remove `_handleBattle()` calls for flip triggers, remove auto day-advance-triggers-battle |
-| `src/substates/FlipMatrixUI.js` | Update card visuals for monster type (icon, color) |
-| `src/substates/DungeonMapUI.js` | Add "迎戰 Day N" button + battle trigger flow |
-| `src/models/BattleManager.js` | Refactor hero generation to use day-scaled config |
+| `src/substates/FlipEventHandler.js` | Add `_handleMonster()` with pick-1-of-3 panel, remove battle-card handling, simplify day-advance logic |
+| `src/substates/FlipMatrixUI.js` | Update card visuals for monster type (purple, monster icon) |
+| `src/substates/DungeonMapUI.js` | Add "迎戰 Day N" button UI |
+| `src/models/BattleManager.js` | Refactor `_generateHeroes()` to use `HERO_DAY_SCALING` table, remove glamour stacking |
 | `src/models/GameState.js` | Track `freeDrawsUsed` per day, reset on `advanceDay()` |
-| `src/scenes/GameScene.js` | Wire battle button to BattleManager, handle post-battle day advance |
+| `src/scenes/GameScene.js` | Wire "迎戰" button to BattleManager + BattleUI, handle post-battle day advance + flip matrix reset |
 
 ### 7. What Does NOT Change
 
 - Final battle injection (Day 3+ probability) — unchanged
 - Room/trap card system — unchanged (still from draw/抽卡)
 - Monster deployment UX (P049) — unchanged
-- Battle mechanics (BattleManager combat) — unchanged
+- Battle mechanics (BattleManager combat logic) — unchanged
 - Torture/capture system — unchanged
-- Meta progression — unchanged
+- Meta progression / unlock system — unchanged
 
 ### 8. Risk
 
-**Medium** — Touches core game loop across 8+ files. However, each change is mechanically straightforward (weight changes, UI additions, config tables). No new systems — reuses existing patterns (card selection panel similar to shop, button similar to existing popup).
+**Medium-High** — Rewires core game loop across 9 files including progression, economy, and pacing. Each individual change reuses existing patterns (card selection panel similar to shop, button similar to popup), but the interconnected nature requires careful integration testing.
 
 ### 9. Verification
 
-1. Day 1: Flip 5 cards for free, 6th costs gold. No battle cards appear.
-2. Flip a monster card → 3 candidates shown → pick one → appears in monster roster
-3. Place room + deploy monster on map → "迎戰 Day 1" button active
-4. Tap button → battle starts with 2 basic heroes → win → Day 2 flip matrix
-5. Day 5+: Battle spawns 4 heroes including holy_knight with 1.5x stats
-6. Final battle still appears face-up on Day 3+
+1. Day 1: Flip matrix has 15 cards, none are battle type. First 5 flips free, flips 6-15 cost gold (escalating). No flips possible beyond the 15-card matrix.
+2. Flip a monster card → 3 candidates shown with star ratings → pick one → appears in monster roster with correct starRating
+3. Switch to map → "迎戰 Day 1" button visible but grayed (no defense)
+4. Place room + deploy monster → button becomes active (red)
+5. Tap "迎戰 Day 1" → battle with 2 basic heroes at 1.0x stats → win → Day 2 flip matrix
+6. Day 5: Battle spawns 4 heroes including holy_knight with 1.5x HP/ATK
+7. Day 3+: finalBattle card may appear face-up, tapping it triggers final battle as before
+8. No way to advance day without fighting
