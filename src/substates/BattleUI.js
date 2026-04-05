@@ -471,6 +471,23 @@ export default class BattleUI {
     // Clear cell highlight if hero was fighting there
     if (cellId) this._dungeonMapUI.setCellHighlight(cellId, null);
 
+    // Stop walk animation if moving when killed
+    if (visual.walkSprite && visual.walkSprite.visible) {
+      visual.walkSprite.stop();
+      visual.walkSprite.setVisible(false);
+      visual.idleSprite.setVisible(true);
+    }
+
+    // Stop float tween
+    if (visual.floatTween && visual.floatTween.isPlaying()) {
+      visual.floatTween.stop();
+    }
+
+    // Stop hurt tween
+    if (visual.hurtTween && visual.hurtTween.isPlaying()) {
+      visual.hurtTween.stop();
+    }
+
     if (captured) {
       // Show "Captured!" text at hero position
       const scene = this._scene;
@@ -494,10 +511,11 @@ export default class BattleUI {
       this._tweens.push(tween);
     }
 
-    // Fade out hero visual
+    // Fade out + sink hero visual
     const tween = this._scene.tweens.add({
       targets: visual.container,
       alpha: 0,
+      y: visual.container.y + 10,
       duration: 500,
       onComplete: () => {
         if (visual.container && visual.container.scene) {
