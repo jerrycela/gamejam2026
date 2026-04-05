@@ -1,6 +1,6 @@
 # P051: Hand Card Hit Zone Z-Order Fix
 
-**Status:** proposed
+**Status:** applied
 **Type:** fix
 **Risk:** low
 
