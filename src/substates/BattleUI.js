@@ -308,6 +308,18 @@ export default class BattleUI {
     // Clear lerp cache
     visual.lerpFrom = null;
     visual.lerpTo = null;
+
+    // ALWAYS normalize visible state (even in high speed — speed may change mid-run)
+    if (visual.walkSprite) {
+      visual.walkSprite.stop();
+      visual.walkSprite.setVisible(false);
+    }
+    visual.idleSprite.setVisible(true);
+
+    // Resume float tween (only if it exists and is paused)
+    if (visual.floatTween && !visual.floatTween.isPlaying()) {
+      visual.floatTween.resume();
+    }
   }
 
   _onCombatStart({ cellId }, session) {
