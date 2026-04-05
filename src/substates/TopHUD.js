@@ -1,4 +1,4 @@
-import { TOP_HUD_HEIGHT } from '../utils/constants.js';
+import { TOP_HUD_HEIGHT, FONT_FAMILY } from '../utils/constants.js';
 import sfx from '../utils/SFXManager.js';
 
 export default class TopHUD {
@@ -15,14 +15,14 @@ export default class TopHUD {
 
     // Day counter (left)
     this.dayText = scene.add.text(16, TOP_HUD_HEIGHT / 2, `Day ${gameState.day}`, {
-      fontSize: '18px', color: '#ffffff', fontFamily: 'sans-serif', fontStyle: 'bold'
+      fontSize: '18px', color: '#ffffff', fontFamily: FONT_FAMILY, fontStyle: 'bold'
     }).setOrigin(0, 0.5);
     this.container.add(this.dayText);
 
     // Mute toggle
     const muteLabel = sfx.muted ? 'x' : '♪';
     this.muteBtn = scene.add.text(this.dayText.x + this.dayText.width + 16, TOP_HUD_HEIGHT / 2, muteLabel, {
-      fontSize: '18px', color: sfx.muted ? '#9999bb' : '#ffffff', fontFamily: 'sans-serif',
+      fontSize: '18px', color: sfx.muted ? '#9999bb' : '#ffffff', fontFamily: FONT_FAMILY,
     }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
 
     this.muteBtn.on('pointerdown', () => {
@@ -35,7 +35,7 @@ export default class TopHUD {
 
     // Gold (center)
     this.goldText = scene.add.text(width / 2, TOP_HUD_HEIGHT / 2, `${gameState.gold} G`, {
-      fontSize: '16px', color: '#f1c40f', fontFamily: 'monospace'
+      fontSize: '16px', color: '#f1c40f', fontFamily: FONT_FAMILY
     }).setOrigin(0.5);
     this.container.add(this.goldText);
 
@@ -43,7 +43,7 @@ export default class TopHUD {
     const drawCost = gameState.getDrawCost();
     const costLabel = drawCost === 0 ? '免費' : `${drawCost}G`;
     this.drawBtn = scene.add.text(width - 16, TOP_HUD_HEIGHT / 2, `抽卡 [${costLabel}]`, {
-      fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif',
+      fontSize: '14px', color: '#ffffff', fontFamily: FONT_FAMILY,
       backgroundColor: '#8e44ad', padding: { x: 8, y: 4 }
     }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
     this.container.add(this.drawBtn);

@@ -1,4 +1,4 @@
-import { rollStarRating } from '../utils/constants.js';
+import { rollStarRating, FONT_FAMILY } from '../utils/constants.js';
 import { buildUnlockedPool } from '../utils/buildUnlockedPool.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
 import sfx from '../utils/SFXManager.js';
@@ -33,7 +33,7 @@ export default class CardPickUI {
     // Title
     const titleText = request.source === 'paidDraw' ? '抽卡' : '獎勵';
     const title = this.scene.add.text(width / 2, height / 4, titleText, {
-      fontSize: '28px', color: '#f1c40f', fontFamily: 'serif'
+      fontSize: '28px', color: '#f1c40f', fontFamily: FONT_FAMILY
     }).setOrigin(0.5);
     this.container.add(title);
 
@@ -68,15 +68,15 @@ export default class CardPickUI {
       }
 
       const nameText = this.scene.add.text(x, centerY - 30, displayName, {
-        fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif'
+        fontSize: '14px', color: '#ffffff', fontFamily: FONT_FAMILY
       }).setOrigin(0.5);
 
       const typeText = this.scene.add.text(x, centerY, typeName, {
-        fontSize: '12px', color: '#bbbbbb', fontFamily: 'monospace'
+        fontSize: '12px', color: '#bbbbbb', fontFamily: FONT_FAMILY
       }).setOrigin(0.5);
 
       const starText = this.scene.add.text(x, centerY + 30, '★'.repeat(option.starRating), {
-        fontSize: '16px', color: '#f1c40f', fontFamily: 'serif'
+        fontSize: '16px', color: '#f1c40f', fontFamily: FONT_FAMILY
       }).setOrigin(0.5);
 
       // Add trap sprite icon if available
@@ -103,7 +103,7 @@ export default class CardPickUI {
 
     // Skip button
     const skipBtn = this.scene.add.text(width - 20, height / 4, '跳過', {
-      fontSize: '16px', color: '#cccccc', fontFamily: 'sans-serif',
+      fontSize: '16px', color: '#cccccc', fontFamily: FONT_FAMILY,
       backgroundColor: '#333333', padding: { x: 12, y: 6 }
     }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
 

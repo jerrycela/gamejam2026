@@ -1,5 +1,7 @@
 // Central constants shared across modules
 
+export const FONT_FAMILY = '"Ark Pixel", monospace';
+
 export const MOVE_DURATION = 400; // ms per cell transition (hero movement speed)
 
 export const EVENT_TYPES = {

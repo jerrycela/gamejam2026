@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { EVENT_TYPES, CARD_WIDTH, CARD_HEIGHT, CARD_GAP, MATRIX_ROWS, MATRIX_COLS, TOP_HUD_HEIGHT } from '../utils/constants.js';
+import { EVENT_TYPES, CARD_WIDTH, CARD_HEIGHT, CARD_GAP, MATRIX_ROWS, MATRIX_COLS, TOP_HUD_HEIGHT, FONT_FAMILY } from '../utils/constants.js';
 import sfx from '../utils/SFXManager.js';
 
 const EVENT_ICONS = {
@@ -57,8 +57,8 @@ export default class FlipMatrixUI {
         // Label
         const labelText = isFaceUp ? eventDef.label : '?';
         const labelStyle = isFaceUp
-          ? { fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif' }
-          : { fontSize: '28px', color: '#9999cc', fontFamily: 'serif' };
+          ? { fontSize: '14px', color: '#ffffff', fontFamily: FONT_FAMILY }
+          : { fontSize: '28px', color: '#9999cc', fontFamily: FONT_FAMILY };
         const labelY = isFaceUp ? y + 10 : y;
         const label = this.scene.add.text(x, labelY, labelText, labelStyle).setOrigin(0.5);
 
@@ -124,7 +124,7 @@ export default class FlipMatrixUI {
         obj.bg.setFillStyle(eventDef.color);
         obj.bg.setStrokeStyle(2, 0xffffff);
         obj.label.setText(eventDef.label);
-        obj.label.setStyle({ fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif' });
+        obj.label.setStyle({ fontSize: '14px', color: '#ffffff', fontFamily: FONT_FAMILY });
         obj.label.setY(obj.y + 10);
         obj.bg.disableInteractive();
 

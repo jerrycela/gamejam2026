@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { FONT_FAMILY } from '../utils/constants.js';
 
 export default class ResultScene extends Phaser.Scene {
   constructor() {
@@ -29,20 +30,20 @@ export default class ResultScene extends Phaser.Scene {
     const title = victory ? '魔王萬歲！' : '勇者得逞...';
     const color = victory ? '#27ae60' : '#e74c3c';
     this.add.text(width / 2, height / 4, title, {
-      fontSize: '48px', color, fontFamily: 'serif'
+      fontSize: '48px', color, fontFamily: FONT_FAMILY
     }).setOrigin(0.5);
 
     // Victory bonus text
     if (victory) {
       this.add.text(width / 2, height / 4 + 50, '魔王等級提升！', {
-        fontSize: '20px', color: '#f1c40f', fontFamily: 'sans-serif'
+        fontSize: '20px', color: '#f1c40f', fontFamily: FONT_FAMILY
       }).setOrigin(0.5);
     }
 
     // Gold saved line
     const goldSaved = stats.gold ?? 0;
     this.add.text(width / 2, height / 4 + 80, `+${goldSaved} 金幣存入 (總計: ${metaState?.metaGold ?? 0})`, {
-      fontSize: '16px', color: '#f1c40f', fontFamily: 'monospace'
+      fontSize: '16px', color: '#f1c40f', fontFamily: FONT_FAMILY
     }).setOrigin(0.5);
 
     // Run summary
@@ -55,7 +56,7 @@ export default class ResultScene extends Phaser.Scene {
       `總遊玩次數: ${metaState?.totalRuns ?? 0}`,
     ];
     this.add.text(width / 2, height / 2 - 20, summaryLines.join('\n'), {
-      fontSize: '16px', color: '#cccccc', fontFamily: 'monospace',
+      fontSize: '16px', color: '#cccccc', fontFamily: FONT_FAMILY,
       align: 'center', lineSpacing: 8
     }).setOrigin(0.5);
 
@@ -68,14 +69,14 @@ export default class ResultScene extends Phaser.Scene {
       });
       const discoveryText = `新發現！${names.join('、')}`;
       this.add.text(width / 2, height / 2 + 60, discoveryText, {
-        fontSize: '16px', color: '#f1c40f', fontFamily: 'monospace',
+        fontSize: '16px', color: '#f1c40f', fontFamily: FONT_FAMILY,
         fontStyle: 'bold',
       }).setOrigin(0.5);
     }
 
     // Restart button
     this.add.text(width / 2, height * 0.72, '再次挑戰', {
-      fontSize: '22px', color: '#ffffff', fontFamily: 'sans-serif',
+      fontSize: '22px', color: '#ffffff', fontFamily: FONT_FAMILY,
       backgroundColor: 'rgba(44,62,80,0.8)', padding: { x: 24, y: 12 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
@@ -84,7 +85,7 @@ export default class ResultScene extends Phaser.Scene {
 
     // Back to Menu button
     this.add.text(width / 2, height * 0.86, '返回主選單', {
-      fontSize: '18px', color: '#cccccc', fontFamily: 'sans-serif',
+      fontSize: '18px', color: '#cccccc', fontFamily: FONT_FAMILY,
       backgroundColor: '#333333', padding: { x: 20, y: 8 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {

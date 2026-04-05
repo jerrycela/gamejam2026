@@ -1,4 +1,4 @@
-import { TOP_HUD_HEIGHT } from '../utils/constants.js';
+import { TOP_HUD_HEIGHT, FONT_FAMILY } from '../utils/constants.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
 
 const ROW_HEIGHT = 72;
@@ -29,7 +29,7 @@ export default class MonsterListUI {
 
     if (roster.length === 0) {
       const empty = this._scene.add.text(width / 2, 160, '尚無怪物', {
-        fontSize: '14px', color: '#9999bb', fontFamily: 'monospace',
+        fontSize: '14px', color: '#9999bb', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5);
       this._rootContainer.add(empty);
       return;
@@ -44,7 +44,7 @@ export default class MonsterListUI {
 
     if (roster.length > MAX_VISIBLE) {
       const more = this._scene.add.text(width / 2, startY + MAX_VISIBLE * ROW_HEIGHT, `+${roster.length - MAX_VISIBLE} ...`, {
-        fontSize: '12px', color: '#aaaacc', fontFamily: 'monospace',
+        fontSize: '12px', color: '#aaaacc', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5);
       this._rootContainer.add(more);
     }
@@ -52,7 +52,7 @@ export default class MonsterListUI {
 
   _buildTitle(width, count) {
     const title = this._scene.add.text(width / 2, TOP_HUD_HEIGHT + 20, `怪物名冊 (${count})`, {
-      fontSize: '22px', color: '#f1c40f', fontFamily: 'serif', fontStyle: 'bold',
+      fontSize: '22px', color: '#f1c40f', fontFamily: FONT_FAMILY, fontStyle: 'bold',
     }).setOrigin(0.5);
     this._rootContainer.add(title);
   }
@@ -76,12 +76,12 @@ export default class MonsterListUI {
 
     // Monster name (left)
     const nameText = this._scene.add.text(56, y - 12, name, {
-      fontSize: '16px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+      fontSize: '16px', color: '#ffffff', fontFamily: FONT_FAMILY, fontStyle: 'bold',
     }).setOrigin(0, 0.5);
 
     // HP / ATK (left, below name)
     const statsText = this._scene.add.text(56, y + 12, `HP ${displayHp}  ATK ${displayAtk}`, {
-      fontSize: '12px', color: '#aaaaaa', fontFamily: 'monospace',
+      fontSize: '12px', color: '#aaaaaa', fontFamily: FONT_FAMILY,
     }).setOrigin(0, 0.5);
 
     // Buff badge
@@ -89,21 +89,21 @@ export default class MonsterListUI {
 
     if (instance.buffFlags && instance.buffFlags.converted) {
       const badge = this._scene.add.text(nameText.x + nameText.width + 8, y - 12, '強化', {
-        fontSize: '11px', color: '#f1c40f', fontFamily: 'monospace',
+        fontSize: '11px', color: '#f1c40f', fontFamily: FONT_FAMILY,
       }).setOrigin(0, 0.5);
       elements.push(badge);
     }
 
     // Status badge
     const statusBadge = this._scene.add.text(width - 120, y - 12, status.label, {
-      fontSize: '12px', color: status.text, fontFamily: 'monospace',
+      fontSize: '12px', color: status.text, fontFamily: FONT_FAMILY,
     }).setOrigin(0.5);
     elements.push(statusBadge);
 
     // CellId display for deployed monsters
     if (isDeployed) {
       const cellLabel = this._scene.add.text(width - 120, y + 6, instance.placedCellId, {
-        fontSize: '10px', color: '#9999bb', fontFamily: 'monospace',
+        fontSize: '10px', color: '#9999bb', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5);
       elements.push(cellLabel);
     }
@@ -111,14 +111,14 @@ export default class MonsterListUI {
     // Action button
     if (isDeployed) {
       const recallBtn = this._scene.add.text(width - 40, y, '收回', {
-        fontSize: '13px', color: '#ff8888', fontFamily: 'monospace',
+        fontSize: '13px', color: '#ff8888', fontFamily: FONT_FAMILY,
         backgroundColor: '#442222', padding: { x: 6, y: 4 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       recallBtn.on('pointerdown', () => this._onRecall(instance));
       elements.push(recallBtn);
     } else {
       const placeBtn = this._scene.add.text(width - 40, y, '放置', {
-        fontSize: '13px', color: '#88ff88', fontFamily: 'monospace',
+        fontSize: '13px', color: '#88ff88', fontFamily: FONT_FAMILY,
         backgroundColor: '#224422', padding: { x: 6, y: 4 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       placeBtn.on('pointerdown', () => this._onPlace(instance));

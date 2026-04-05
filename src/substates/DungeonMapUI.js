@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { TOP_HUD_HEIGHT, TAB_BAR_HEIGHT } from '../utils/constants.js';
+import { TOP_HUD_HEIGHT, TAB_BAR_HEIGHT, FONT_FAMILY } from '../utils/constants.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
 import spriteManifest from '../data/spriteManifest.js';
 
@@ -601,7 +601,7 @@ export default class DungeonMapUI {
 
     if (!hand || hand.length === 0) {
       const emptyText = scene.add.text(width / 2, HAND_H / 2, '翻牌取得卡牌', {
-        fontSize: '14px', color: '#9999bb', fontFamily: 'sans-serif',
+        fontSize: '14px', color: '#9999bb', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5);
       this._handAreaContainer.add(emptyText);
       return;
@@ -637,14 +637,14 @@ export default class DungeonMapUI {
       bg.strokeRoundedRect(x - thumbW / 2, y - thumbH / 2, thumbW, thumbH, 6);
 
       const label = scene.add.text(x, y - 6, card.id[0] || '?', {
-        fontSize: '16px', color: '#ffffff', fontFamily: 'monospace',
+        fontSize: '16px', color: '#ffffff', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5);
 
       // Star dots
       let starStr = '';
       for (let s = 0; s < (card.starRating || 1); s++) starStr += '★';
       const starText = scene.add.text(x, y + 12, starStr, {
-        fontSize: '8px', color: '#f1c40f', fontFamily: 'monospace',
+        fontSize: '8px', color: '#f1c40f', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5);
 
       // Dim non-selected cards during selection mode
@@ -967,15 +967,15 @@ export default class DungeonMapUI {
     const bg = scene.add.rectangle(0, 0, 120, 60, 0x000000, 0.8)
       .setStrokeStyle(1, 0xffffff);
     const label = scene.add.text(0, -16, '替換？', {
-      fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif',
+      fontSize: '14px', color: '#ffffff', fontFamily: FONT_FAMILY,
     }).setOrigin(0.5);
 
     const yesBtn = scene.add.text(-28, 10, '[是]', {
-      fontSize: '13px', color: '#00ff88', fontFamily: 'monospace',
+      fontSize: '13px', color: '#00ff88', fontFamily: FONT_FAMILY,
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
     const noBtn = scene.add.text(28, 10, '[否]', {
-      fontSize: '13px', color: '#ff4444', fontFamily: 'monospace',
+      fontSize: '13px', color: '#ff4444', fontFamily: FONT_FAMILY,
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
     yesBtn.on('pointerdown', (_p, _lx, _ly, event) => {
@@ -1038,15 +1038,15 @@ export default class DungeonMapUI {
     const bg = scene.add.rectangle(0, 0, 120, 60, 0x000000, 0.8)
       .setStrokeStyle(1, 0xffffff);
     const label = scene.add.text(0, -16, '交換？', {
-      fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif',
+      fontSize: '14px', color: '#ffffff', fontFamily: FONT_FAMILY,
     }).setOrigin(0.5);
 
     const yesBtn = scene.add.text(-28, 10, '[是]', {
-      fontSize: '13px', color: '#00ff88', fontFamily: 'monospace',
+      fontSize: '13px', color: '#00ff88', fontFamily: FONT_FAMILY,
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
     const noBtn = scene.add.text(28, 10, '[否]', {
-      fontSize: '13px', color: '#ff4444', fontFamily: 'monospace',
+      fontSize: '13px', color: '#ff4444', fontFamily: FONT_FAMILY,
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
     yesBtn.on('pointerdown', (_p, _lx, _ly, event) => {
@@ -1283,19 +1283,19 @@ export default class DungeonMapUI {
 
     // Title
     const titleText = scene.add.text(cx, popupY + 20, `Cell: ${cell.id}`, {
-      fontSize: '14px', color: '#ccccff', fontFamily: 'monospace', fontStyle: 'bold',
+      fontSize: '14px', color: '#ccccff', fontFamily: FONT_FAMILY, fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
     const lines = this._getCellPopupLines(cell);
     const contentTexts = lines.map((line, i) =>
       scene.add.text(popupX + 16, popupY + 46 + i * 22, line, {
-        fontSize: '13px', color: '#dddddd', fontFamily: 'sans-serif',
+        fontSize: '13px', color: '#dddddd', fontFamily: FONT_FAMILY,
       })
     );
 
     // Close button
     const closeBtn = scene.add.text(cx, popupY + popupH - 22, '[ 關閉 ]', {
-      fontSize: '14px', color: '#aaaaff', fontFamily: 'sans-serif',
+      fontSize: '14px', color: '#aaaaff', fontFamily: FONT_FAMILY,
       backgroundColor: '#2a2a5a', padding: { x: 12, y: 4 },
     }).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
 

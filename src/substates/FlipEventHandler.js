@@ -1,4 +1,4 @@
-import { rollStarRating } from '../utils/constants.js';
+import { rollStarRating, FONT_FAMILY } from '../utils/constants.js';
 import { buildUnlockedPool } from '../utils/buildUnlockedPool.js';
 import sfx from '../utils/SFXManager.js';
 
@@ -232,7 +232,7 @@ export default class FlipEventHandler {
 
     // Create toast as container with bg rectangle + text
     const toastText = this.scene.add.text(0, 0, text, {
-      fontSize: '24px', color: '#ffffff', fontFamily: 'sans-serif',
+      fontSize: '24px', color: '#ffffff', fontFamily: FONT_FAMILY,
     }).setOrigin(0.5);
 
     const padding = { x: 24, y: 12 };
@@ -284,7 +284,7 @@ export default class FlipEventHandler {
     for (let i = 0; i < coinCount; i++) {
       const coin = this.scene.add.circle(startX, startY, 12, 0xf1c40f);
       const coinLabel = this.scene.add.text(startX, startY, 'G', {
-        fontSize: '10px', color: '#8B6914', fontFamily: 'monospace', fontStyle: 'bold',
+        fontSize: '10px', color: '#8B6914', fontFamily: FONT_FAMILY, fontStyle: 'bold',
       }).setOrigin(0.5);
       coin.setDepth(1500);
       coinLabel.setDepth(1501);

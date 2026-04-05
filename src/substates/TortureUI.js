@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { TAB_BAR_HEIGHT, TORTURE_CONFIG } from '../utils/constants.js';
+import { TAB_BAR_HEIGHT, TORTURE_CONFIG, FONT_FAMILY } from '../utils/constants.js';
 import sfx from '../utils/SFXManager.js';
 
 const SLOT_RADIUS = 45;
@@ -70,7 +70,7 @@ export default class TortureUI {
       const timer = scene.time.delayedCall(i * 500, () => {
         const monsterLabel = data.monsterTypeId || '???';
         const toast = scene.add.text(width / 2, 130, `${monsterLabel} 轉化完成！`, {
-          fontSize: '16px', color: '#f1c40f', fontFamily: 'serif', fontStyle: 'bold',
+          fontSize: '16px', color: '#f1c40f', fontFamily: FONT_FAMILY, fontStyle: 'bold',
           backgroundColor: '#2d2d5e', padding: { x: 12, y: 6 },
         }).setOrigin(0.5).setDepth(2000);
         this._rootContainer.add(toast);
@@ -99,7 +99,7 @@ export default class TortureUI {
 
   _buildTitle(width) {
     const title = this._scene.add.text(width / 2, 80, '刑求室', {
-      fontSize: '26px', color: '#f1c40f', fontFamily: 'serif', fontStyle: 'bold',
+      fontSize: '26px', color: '#f1c40f', fontFamily: FONT_FAMILY, fontStyle: 'bold',
     }).setOrigin(0.5);
     this._rootContainer.add(title);
   }
@@ -129,7 +129,7 @@ export default class TortureUI {
           fontSize: '20px',
         }).setOrigin(0.5);
         const costText = this._scene.add.text(0, 16, `解鎖 ${slot.cost}G`, {
-          fontSize: '13px', color: '#cccccc', fontFamily: 'monospace',
+          fontSize: '13px', color: '#cccccc', fontFamily: FONT_FAMILY,
         }).setOrigin(0.5);
 
         const hitZone = this._scene.add.zone(0, 0, SLOT_RADIUS * 2, SLOT_RADIUS * 2).setInteractive({ useHandCursor: true });
@@ -142,7 +142,7 @@ export default class TortureUI {
         border.lineStyle(2, 0x666666, 0.6);
         border.strokeCircle(0, 0, SLOT_RADIUS);
         const emptyText = this._scene.add.text(0, 0, '空', {
-          fontSize: '18px', color: '#9999bb', fontFamily: 'monospace',
+          fontSize: '18px', color: '#9999bb', fontFamily: FONT_FAMILY,
         }).setOrigin(0.5);
 
         const hitZone = this._scene.add.zone(0, 0, SLOT_RADIUS * 2, SLOT_RADIUS * 2).setInteractive({ useHandCursor: true });
@@ -159,10 +159,10 @@ export default class TortureUI {
 
         const circle = this._scene.add.arc(0, 0, SLOT_RADIUS, 0, 360, false, 0x222244, 0.9);
         const letterText = this._scene.add.text(0, -6, label, {
-          fontSize: '22px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+          fontSize: '22px', color: '#ffffff', fontFamily: FONT_FAMILY, fontStyle: 'bold',
         }).setOrigin(0.5);
         const progressText = this._scene.add.text(0, 20, `${slot.progress}/${slot.target}`, {
-          fontSize: '13px', color: '#cccccc', fontFamily: 'monospace',
+          fontSize: '13px', color: '#cccccc', fontFamily: FONT_FAMILY,
         }).setOrigin(0.5);
 
         // Progress arc ring
@@ -193,13 +193,13 @@ export default class TortureUI {
 
     // Label
     const label = this._scene.add.text(width / 2, stagingY - 35, `俘虜 (${prisoners.length})`, {
-      fontSize: '14px', color: '#aaaacc', fontFamily: 'monospace',
+      fontSize: '14px', color: '#aaaacc', fontFamily: FONT_FAMILY,
     }).setOrigin(0.5);
     this._rootContainer.add(label);
 
     if (prisoners.length === 0) {
       const emptyText = this._scene.add.text(width / 2, stagingY + 10, '尚無俘虜', {
-        fontSize: '13px', color: '#9999bb', fontFamily: 'monospace',
+        fontSize: '13px', color: '#9999bb', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5);
       this._rootContainer.add(emptyText);
       return;
@@ -217,7 +217,7 @@ export default class TortureUI {
     // Left arrow
     if (this._stagingOffset > 0) {
       const leftArrow = this._scene.add.text(startX - CHIP_GAP / 2 - 10, stagingY, '<', {
-        fontSize: '20px', color: '#aaaaff', fontFamily: 'monospace',
+        fontSize: '20px', color: '#aaaaff', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       leftArrow.on('pointerdown', () => this._onStagingScroll(-1));
       this._rootContainer.add(leftArrow);
@@ -227,7 +227,7 @@ export default class TortureUI {
     if (visibleEnd < prisoners.length) {
       const rightX = startX + (visibleCount - 1) * CHIP_GAP + CHIP_GAP / 2 + 10;
       const rightArrow = this._scene.add.text(rightX, stagingY, '>', {
-        fontSize: '20px', color: '#aaaaff', fontFamily: 'monospace',
+        fontSize: '20px', color: '#aaaaff', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       rightArrow.on('pointerdown', () => this._onStagingScroll(1));
       this._rootContainer.add(rightArrow);
@@ -256,12 +256,12 @@ export default class TortureUI {
 
       // Letter
       const letterText = this._scene.add.text(chipX, stagingY - 2, chipLabel, {
-        fontSize: '14px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+        fontSize: '14px', color: '#ffffff', fontFamily: FONT_FAMILY, fontStyle: 'bold',
       }).setOrigin(0.5);
 
       // Extract button (separate interactive, stopPropagation)
       const extractBtn = this._scene.add.text(chipX, stagingY + CHIP_RADIUS + 14, '榨取', {
-        fontSize: '11px', color: '#ff6666', fontFamily: 'monospace',
+        fontSize: '11px', color: '#ff6666', fontFamily: FONT_FAMILY,
         backgroundColor: '#441111', padding: { x: 4, y: 2 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       extractBtn.on('pointerdown', (_pointer, _lx, _ly, event) => {

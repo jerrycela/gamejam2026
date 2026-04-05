@@ -3,6 +3,7 @@ import DataManager from '../models/DataManager.js';
 import MetaState from '../models/MetaState.js';
 import spriteManifest from '../data/spriteManifest.js';
 import sfx from '../utils/SFXManager.js';
+import { FONT_FAMILY } from '../utils/constants.js';
 
 const SFX_LIST = [
   'card_flip', 'battle_hit', 'coin', 'trap_trigger',
@@ -27,13 +28,13 @@ export default class BootScene extends Phaser.Scene {
 
     this.load.on('progress', (v) => { fill.width = (barW - 4) * v; });
 
-    // Title text
+    // Title text (uses fallback font during load, pixel font kicks in after)
     this.add.text(width / 2, barY - 60, '魔王創業', {
-      fontSize: '32px', color: '#e74c3c', fontFamily: 'serif'
+      fontSize: '32px', color: '#e74c3c', fontFamily: FONT_FAMILY
     }).setOrigin(0.5);
 
     this.add.text(width / 2, barY + 40, 'Loading...', {
-      fontSize: '14px', color: '#888', fontFamily: 'monospace'
+      fontSize: '14px', color: '#888', fontFamily: FONT_FAMILY
     }).setOrigin(0.5);
 
     // Register data loading
@@ -59,7 +60,10 @@ export default class BootScene extends Phaser.Scene {
     SFX_LIST.forEach((id) => this.load.audio(id, `audio/${id}.wav`));
   }
 
-  create() {
+  async create() {
+    // Ensure pixel font is fully loaded before rendering any UI
+    await document.fonts.ready;
+
     const { width, height } = this.scale;
 
     // Register animations from spritesheet manifest entries (P026)
@@ -107,7 +111,7 @@ export default class BootScene extends Phaser.Scene {
 
     // "Tap to Start" text with alpha pulse tween
     const tapText = this.add.text(width / 2, height * 0.75, 'Tap to Start', {
-      fontSize: '22px', color: '#ffffff', fontFamily: 'sans-serif'
+      fontSize: '22px', color: '#ffffff', fontFamily: FONT_FAMILY
     }).setOrigin(0.5).setDepth(1);
 
     this.tweens.add({

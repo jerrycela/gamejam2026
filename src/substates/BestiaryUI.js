@@ -1,4 +1,4 @@
-import { TOP_HUD_HEIGHT } from '../utils/constants.js';
+import { TOP_HUD_HEIGHT, FONT_FAMILY } from '../utils/constants.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
 
 const ROW_HEIGHT = 100;
@@ -65,7 +65,7 @@ export default class BestiaryUI {
 
     if (allHeroes.length > MAX_VISIBLE) {
       const more = this._scene.add.text(width / 2, startY + MAX_VISIBLE * ROW_HEIGHT, `+${allHeroes.length - MAX_VISIBLE} ...`, {
-        fontSize: '12px', color: '#aaaacc', fontFamily: 'monospace',
+        fontSize: '12px', color: '#aaaacc', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5);
       this._rootContainer.add(more);
     }
@@ -73,7 +73,7 @@ export default class BestiaryUI {
 
   _buildTitle(width, discovered, total) {
     const title = this._scene.add.text(width / 2, TOP_HUD_HEIGHT + 20, `英雄圖鑑 (${discovered}/${total})`, {
-      fontSize: '22px', color: '#f1c40f', fontFamily: 'serif', fontStyle: 'bold',
+      fontSize: '22px', color: '#f1c40f', fontFamily: FONT_FAMILY, fontStyle: 'bold',
     }).setOrigin(0.5);
     this._rootContainer.add(title);
   }
@@ -87,32 +87,32 @@ export default class BestiaryUI {
 
     // Name
     const nameText = this._scene.add.text(56, y - 28, hero.name, {
-      fontSize: '16px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+      fontSize: '16px', color: '#ffffff', fontFamily: FONT_FAMILY, fontStyle: 'bold',
     }).setOrigin(0, 0.5);
 
     // Type tags
     const typeTags = hero.type.map(t => t).join(' / ');
     const typeText = this._scene.add.text(56, y - 10, typeTags, {
-      fontSize: '11px', color: TYPE_COLORS[hero.type[0]] || '#888888', fontFamily: 'monospace',
+      fontSize: '11px', color: TYPE_COLORS[hero.type[0]] || '#888888', fontFamily: FONT_FAMILY,
     }).setOrigin(0, 0.5);
 
     // Stats
     const statsText = this._scene.add.text(56, y + 6, `HP ${hero.baseHp}  ATK ${hero.baseAtk}  DEF ${hero.baseDef}`, {
-      fontSize: '12px', color: '#aaaaaa', fontFamily: 'monospace',
+      fontSize: '12px', color: '#aaaaaa', fontFamily: FONT_FAMILY,
     }).setOrigin(0, 0.5);
 
     // Skill name
     const skillText = this._scene.add.text(56, y + 22, `技 ${hero.skill.name}`, {
-      fontSize: '11px', color: '#66aaff', fontFamily: 'monospace',
+      fontSize: '11px', color: '#66aaff', fontFamily: FONT_FAMILY,
     }).setOrigin(0, 0.5);
 
     // Encounter counts (right side)
     const countText = this._scene.add.text(width - 20, y - 10, `遭遇 ${counts.seen}`, {
-      fontSize: '12px', color: '#cccccc', fontFamily: 'monospace',
+      fontSize: '12px', color: '#cccccc', fontFamily: FONT_FAMILY,
     }).setOrigin(1, 0.5);
 
     const killText = this._scene.add.text(width - 20, y + 8, `擊殺 ${counts.killed}`, {
-      fontSize: '12px', color: '#e74c3c', fontFamily: 'monospace',
+      fontSize: '12px', color: '#e74c3c', fontFamily: FONT_FAMILY,
     }).setOrigin(1, 0.5);
 
     this._rootContainer.add([rowBg, spriteIcon, nameText, typeText, statsText, skillText, countText, killText]);
@@ -125,11 +125,11 @@ export default class BestiaryUI {
     const lockIcon = this._scene.add.arc(36, y, 16, 0, 360, false, 0x222233, 1);
 
     const lockText = this._scene.add.text(width / 2, y - 8, '??? 未知英雄', {
-      fontSize: '16px', color: '#9999cc', fontFamily: 'monospace', fontStyle: 'bold',
+      fontSize: '16px', color: '#9999cc', fontFamily: FONT_FAMILY, fontStyle: 'bold',
     }).setOrigin(0.5);
 
     const hintText = this._scene.add.text(width / 2, y + 14, '尚未遭遇', {
-      fontSize: '12px', color: '#9999bb', fontFamily: 'monospace',
+      fontSize: '12px', color: '#9999bb', fontFamily: FONT_FAMILY,
     }).setOrigin(0.5);
 
     this._rootContainer.add([rowBg, lockIcon, lockText, hintText]);

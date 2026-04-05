@@ -1,7 +1,7 @@
 // BattleUI.js
 // Visual layer for BattleManager: hero circles, HP bars, damage popups, result banner.
 
-import { MOVE_DURATION } from '../utils/constants.js';
+import { MOVE_DURATION, FONT_FAMILY } from '../utils/constants.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
 import sfx from '../utils/SFXManager.js';
 
@@ -520,7 +520,7 @@ export default class BattleUI {
         visual.container.x,
         visual.container.y - 30,
         'Captured!',
-        { fontSize: '12px', color: '#f1c40f', fontFamily: 'monospace' }
+        { fontSize: '12px', color: '#f1c40f', fontFamily: FONT_FAMILY }
       ).setOrigin(0.5).setDepth(2001);
 
       this._dungeonMapUI.getMapWorldContainer().add(capturedText);
@@ -594,11 +594,11 @@ export default class BattleUI {
       .setStrokeStyle(2, isSuccess ? 0x2ecc71 : 0xe74c3c);
 
     const titleText = scene.add.text(0, -22, titleStr, {
-      fontSize: '22px', color: titleColor, fontFamily: 'serif', fontStyle: 'bold',
+      fontSize: '22px', color: titleColor, fontFamily: FONT_FAMILY, fontStyle: 'bold',
     }).setOrigin(0.5);
 
     const subText = scene.add.text(0, 16, subStr, {
-      fontSize: '14px', color: '#cccccc', fontFamily: 'sans-serif',
+      fontSize: '14px', color: '#cccccc', fontFamily: FONT_FAMILY,
     }).setOrigin(0.5);
 
     bannerCont.add([bg, titleText, subText]);
@@ -639,7 +639,7 @@ export default class BattleUI {
     const text = scene.add.text(hcPos.x, hcPos.y - 40, skillName, {
       fontSize: '18px',
       color: skillId === 'shockwave' ? '#ff4444' : '#4488ff',
-      fontFamily: 'monospace',
+      fontFamily: FONT_FAMILY,
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(2000);
     this._dungeonMapUI.getMapWorldContainer().add(text);
@@ -678,7 +678,7 @@ export default class BattleUI {
     const text = scene.add.text(width / 2, height / 2, '魔王狂暴化！', {
       fontSize: '32px',
       color: '#ff2222',
-      fontFamily: 'serif',
+      fontFamily: FONT_FAMILY,
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(2201);
     this._transients.push(overlay, text);
@@ -714,7 +714,7 @@ export default class BattleUI {
     const text = scene.add.text(hsPos.x, hsPos.y - 40, skillName, {
       fontSize: '18px',
       color: '#9b59b6',
-      fontFamily: 'monospace',
+      fontFamily: FONT_FAMILY,
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(2000);
     this._dungeonMapUI.getMapWorldContainer().add(text);
@@ -775,7 +775,7 @@ export default class BattleUI {
     const text = scene.add.text(x, y, label, {
       fontSize: '14px',
       color: color || '#ffffff',
-      fontFamily: 'monospace',
+      fontFamily: FONT_FAMILY,
       fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(2000);
 

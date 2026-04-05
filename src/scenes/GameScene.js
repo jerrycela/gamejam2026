@@ -10,7 +10,7 @@ import BattleUI from '../substates/BattleUI.js';
 import TortureUI from '../substates/TortureUI.js';
 import MonsterListUI from '../substates/MonsterListUI.js';
 import BestiaryUI from '../substates/BestiaryUI.js';
-import { EVENT_TYPES } from '../utils/constants.js';
+import { EVENT_TYPES, FONT_FAMILY } from '../utils/constants.js';
 import { buildUnlockedPool } from '../utils/buildUnlockedPool.js';
 
 // Substate keys
@@ -64,7 +64,7 @@ export default class GameScene extends Phaser.Scene {
       if (key !== 'flipMatrix' && key !== 'dungeonMap' && key !== 'torture' && key !== 'monsterList' && key !== 'bestiary') {
         const bg = this.add.rectangle(width / 2, contentH / 2, width, contentH, 0x1a1a2e);
         const label = this.add.text(width / 2, contentH / 2, key, {
-          fontSize: '24px', color: '#9999bb', fontFamily: 'monospace',
+          fontSize: '24px', color: '#9999bb', fontFamily: FONT_FAMILY,
         }).setOrigin(0.5);
         container.add([bg, label]);
       }
@@ -240,15 +240,15 @@ export default class GameScene extends Phaser.Scene {
       .setInteractive(); // blocks clicks on top bar
 
     const titleText = this.add.text(16, 24, '戰鬥中...', {
-      fontSize: '18px', color: '#e74c3c', fontFamily: 'serif',
+      fontSize: '18px', color: '#e74c3c', fontFamily: FONT_FAMILY,
     }).setOrigin(0, 0.5);
 
     this._battleTypeText = this.add.text(width / 2, 24, '', {
-      fontSize: '14px', color: '#cccccc', fontFamily: 'monospace',
+      fontSize: '14px', color: '#cccccc', fontFamily: FONT_FAMILY,
     }).setOrigin(0.5);
 
     this._battleHeroCountText = this.add.text(width - 12, 24, '', {
-      fontSize: '13px', color: '#aaaaff', fontFamily: 'monospace',
+      fontSize: '13px', color: '#aaaaff', fontFamily: FONT_FAMILY,
     }).setOrigin(1, 0.5);
 
     // --- Middle zone (y=48..height-104): TRANSPARENT, no interactive ---
@@ -269,7 +269,7 @@ export default class GameScene extends Phaser.Scene {
 
     for (const def of btnDefs) {
       const btn = this.add.text(def.x, botBarY, `[${def.label}]`, {
-        fontSize: '16px', color: '#aaaaff', fontFamily: 'monospace',
+        fontSize: '16px', color: '#aaaaff', fontFamily: FONT_FAMILY,
         backgroundColor: '#2d2d5e', padding: { x: 16, y: 8 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
@@ -283,7 +283,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Debug: force end button
     const endBtn = this.add.text(width - 16, botBarY, '結束戰鬥', {
-      fontSize: '13px', color: '#aaaacc', fontFamily: 'sans-serif',
+      fontSize: '13px', color: '#aaaacc', fontFamily: FONT_FAMILY,
       backgroundColor: '#333333', padding: { x: 8, y: 4 },
     }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
 
@@ -337,7 +337,7 @@ export default class GameScene extends Phaser.Scene {
     container.add(overlay);
 
     const title = this.add.text(width / 2, height / 4, '商店', {
-      fontSize: '28px', color: '#2980b9', fontFamily: 'serif'
+      fontSize: '28px', color: '#2980b9', fontFamily: FONT_FAMILY
     }).setOrigin(0.5);
     container.add(title);
 
@@ -371,19 +371,19 @@ export default class GameScene extends Phaser.Scene {
         .setStrokeStyle(2, 0x2980b9);
 
       const typeText = this.add.text(x, y - 50, item.label, {
-        fontSize: '11px', color: '#95a5a6', fontFamily: 'sans-serif'
+        fontSize: '11px', color: '#95a5a6', fontFamily: FONT_FAMILY
       }).setOrigin(0.5);
 
       const nameText = this.add.text(x, y - 30, item.name, {
-        fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif'
+        fontSize: '14px', color: '#ffffff', fontFamily: FONT_FAMILY
       }).setOrigin(0.5);
 
       const priceText = this.add.text(x, y + 10, `${item.price}G`, {
-        fontSize: '14px', color: '#f1c40f', fontFamily: 'monospace'
+        fontSize: '14px', color: '#f1c40f', fontFamily: FONT_FAMILY
       }).setOrigin(0.5);
 
       const buyBtn = this.add.text(x, y + 50, '購買', {
-        fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif',
+        fontSize: '14px', color: '#ffffff', fontFamily: FONT_FAMILY,
         backgroundColor: '#27ae60', padding: { x: 12, y: 4 }
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
@@ -417,7 +417,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Leave button
     const leaveBtn = this.add.text(width / 2, height * 0.8, '離開', {
-      fontSize: '18px', color: '#cccccc', fontFamily: 'sans-serif',
+      fontSize: '18px', color: '#cccccc', fontFamily: FONT_FAMILY,
       backgroundColor: '#333333', padding: { x: 20, y: 8 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
@@ -451,7 +451,7 @@ export default class GameScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
 
       const text = this.add.text(centerX, centerY, label, {
-        fontSize: '16px', color: '#aaaacc', fontFamily: 'sans-serif',
+        fontSize: '16px', color: '#aaaacc', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5);
 
       hitZone.on('pointerdown', () => {
