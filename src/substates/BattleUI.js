@@ -84,6 +84,10 @@ export default class BattleUI {
     if (routes.length > 0) {
       this._dungeonMapUI.drawForecastRoute(routes[0]);
     }
+
+    // Create monster HP bars on cells
+    this._monsterHpBars = new Map();
+    this._createMonsterHpBars();
   }
 
   update(dt) {
@@ -121,6 +125,9 @@ export default class BattleUI {
         visual.statusRing.setStrokeStyle(0);
       }
     }
+
+    // Update monster HP bars
+    this._updateMonsterHpBars();
   }
 
   stop() {
@@ -643,10 +650,13 @@ export default class BattleUI {
     if (this._scene.topHUD) this._scene.topHUD.update();
   }
 
-  _onBattleEnd({ result, kills, goldEarned }, session) {
+  _onBattleEnd({ result, kills, goldEarned, cellStats }, session) {
     if (this._sessionId !== session) return;
     this._dungeonMapUI.clearForecastRoute();
     sfx.play(result === 'defenseSuccess' ? 'victory' : 'defeat');
+
+    // Show per-cell battle stats overlay on map
+    if (cellStats) this._showCellStatsOverlay(cellStats);
 
     const scene = this._scene;
     const { width, height } = scene.scale;
@@ -842,6 +852,80 @@ export default class BattleUI {
   // ---------------------------------------------------------------------------
   // Damage popup
   // ---------------------------------------------------------------------------
+
+  // ---------------------------------------------------------------------------
+  // Post-battle cell stats overlay
+  // ---------------------------------------------------------------------------
+
+  _showCellStatsOverlay(cellStats) {
+    const scene = this._scene;
+    const mapCont = this._dungeonMapUI.getMapWorldContainer();
+
+    for (const [cellId, stats] of Object.entries(cellStats)) {
+      const pos = this._dungeonMapUI.getCellPosition(cellId);
+      if (!pos) continue;
+
+      const totalDmg = stats.damage + stats.trapDamage;
+      if (totalDmg === 0 && stats.kills === 0) continue;
+
+      const lines = [];
+      if (totalDmg > 0) lines.push(`${totalDmg} dmg`);
+      if (stats.kills > 0) lines.push(`${stats.kills} kill`);
+      if (stats.trapTriggers > 0) lines.push(`trap x${stats.trapTriggers}`);
+
+      const label = lines.join(' | ');
+      const text = scene.add.text(pos.x, pos.y + 42, label, {
+        fontSize: '10px',
+        color: stats.kills > 0 ? '#f1c40f' : '#cccccc',
+        fontFamily: FONT_FAMILY,
+        fontStyle: 'bold',
+        backgroundColor: '#000000aa',
+        padding: { x: 3, y: 1 },
+      }).setOrigin(0.5, 0).setDepth(2050);
+
+      mapCont.add(text);
+      this._transients.push(text);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Monster HP bars (shown during battle on each cell with a monster)
+  // ---------------------------------------------------------------------------
+
+  _createMonsterHpBars() {
+    const scene = this._scene;
+    const mapCont = this._dungeonMapUI.getMapWorldContainer();
+    const MON_HP_W = 40;
+    const MON_HP_H = 4;
+
+    for (const cell of this._gameState.dungeonGrid) {
+      if (!cell.monster || cell.type !== 'normal') continue;
+      const pos = this._dungeonMapUI.getCellPosition(cell.id);
+      if (!pos) continue;
+
+      const barY = pos.y + 32; // Below the cell
+      const bg = scene.add.rectangle(pos.x, barY, MON_HP_W, MON_HP_H, 0x444444).setOrigin(0.5, 0).setDepth(1200);
+      const fill = scene.add.rectangle(pos.x - MON_HP_W / 2, barY, MON_HP_W, MON_HP_H, 0x27ae60).setOrigin(0, 0).setDepth(1201);
+      mapCont.add([bg, fill]);
+      this._transients.push(bg, fill);
+      this._monsterHpBars.set(cell.id, { bg, fill, maxW: MON_HP_W });
+    }
+  }
+
+  _updateMonsterHpBars() {
+    for (const cell of this._gameState.dungeonGrid) {
+      const bar = this._monsterHpBars.get(cell.id);
+      if (!bar) continue;
+      if (!cell.monster || cell.monster._battleDead) {
+        bar.bg.setVisible(false);
+        bar.fill.setVisible(false);
+        continue;
+      }
+      const ratio = Math.max(0, cell.monster.currentHp / (cell.monster.maxHp || 1));
+      bar.fill.width = ratio * bar.maxW;
+      bar.fill.fillColor = ratio > 0.5 ? 0x27ae60 : ratio > 0.25 ? 0xf39c12 : 0xe74c3c;
+    }
+  }
 
   /** Flash the monster sprite in a cell briefly (attack feedback). */
   _flashMonsterSprite(cellId, tint = 0xffffff) {

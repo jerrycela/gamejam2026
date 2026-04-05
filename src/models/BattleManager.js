@@ -56,6 +56,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
     this._preKillCount = this._gameState.killCount;
     this._preGold = this._gameState.gold;
     this.lastResult = null;
+    this._cellStats = new Map(); // cellId -> { damage, kills, trapDamage, trapTriggers }
     this._active = true;
     this.emit('battleStart', { eventType, heroCount: this._heroes.length });
   }
@@ -223,6 +224,8 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
         this.emit('trapSkip', { hero, cellId: cell.id });
       } else {
         this.emit('trapTrigger', { hero, cellId: cell.id, damage: result.damage, trapTypeId: cell.trap.typeId });
+        this._addCellStat(cell.id, 'trapDamage', result.damage);
+        this._addCellStat(cell.id, 'trapTriggers', 1);
       }
       if (hero.hp <= 0) {
         this._heroDefeated(hero, cell.id);
@@ -385,6 +388,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       const dmg = this._resolveAttack(monsterAtk, hero.def);
       this._applyDamageToHero(hero, dmg);
       this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: hero.instanceId, damage: dmg, cellId: ctx.cellId });
+      this._addCellStat(ctx.cellId, 'damage', dmg);
       // Room buff: HP regen on attack
       if (roomBuff.hpRegen > 0 && monster.currentHp < (monster.maxHp || Infinity)) {
         const regen = Math.min(roomBuff.hpRegen, (monster.maxHp || Infinity) - monster.currentHp);
@@ -412,10 +416,12 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
           for (const target of targets) {
             this._applyDamageToHero(target, dmg);
             this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: target.instanceId, damage: dmg, isSkill: true, cellId: ctx.cellId });
+            this._addCellStat(ctx.cellId, 'damage', dmg);
           }
         } else {
           this._applyDamageToHero(hero, dmg);
           this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: hero.instanceId, damage: dmg, isSkill: true, cellId: ctx.cellId });
+          this._addCellStat(ctx.cellId, 'damage', dmg);
         }
       }
     }
@@ -666,6 +672,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
   _heroDefeated(hero, cellId) {
     hero.state = 'dead';
     this._gameState.killCount += 1;
+    this._addCellStat(cellId, 'kills', 1);
 
     // Gold reward + return stolen gold
     const heroDef = this._dataManager.getHero(hero.typeId);
@@ -715,6 +722,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       result,
       kills: this._gameState.killCount - this._preKillCount,
       goldEarned: this._gameState.gold - this._preGold,
+      cellStats: this._cellStats ? Object.fromEntries(this._cellStats) : {},
     });
   }
 
@@ -722,6 +730,15 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
 
   _resolveAttack(atk, def) {
     return Math.max(1, Math.round(atk - def * 0.5));
+  }
+
+  /** Accumulate per-cell battle statistics. */
+  _addCellStat(cellId, field, value) {
+    if (!this._cellStats) return;
+    if (!this._cellStats.has(cellId)) {
+      this._cellStats.set(cellId, { damage: 0, kills: 0, trapDamage: 0, trapTriggers: 0 });
+    }
+    this._cellStats.get(cellId)[field] += value;
   }
 
   /**
