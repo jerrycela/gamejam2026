@@ -1432,7 +1432,7 @@ export default class DungeonMapUI {
       const hand = this.gameState.hand;
       const hasRoom = hand.some(c => c.type === 'room');
       const hasTrap = hand.some(c => c.type === 'trap');
-      const undeployed = this.gameState.getUndeployedMonsters();
+      const undeployed = this.gameState.getAvailableMonsters();
       const hasMonster = undeployed.length > 0;
 
       if (hasRoom) {
@@ -1487,6 +1487,18 @@ export default class DungeonMapUI {
     const totalBtnW = actionBtns.length * 56 + (actionBtns.length - 1) * 8;
     const btnStartX = cx - totalBtnW / 2 + 28;
 
+    // Close button
+    const closeBtn = scene.add.text(cx, popupY + popupH - 22, '[ 關閉 ]', {
+      fontSize: '14px', color: '#aaaaff', fontFamily: FONT_FAMILY,
+      backgroundColor: '#2a2a5a', padding: { x: 12, y: 4 },
+    }).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
+
+    closeBtn.on('pointerdown', () => this._hidePopup());
+    overlay.on('pointerdown', () => this._hidePopup());
+
+    this._popupContainer.add([overlay, panel, titleText, ...contentTexts]);
+
+    // Action buttons (P049) — added after panel so they render on top
     actionBtns.forEach((btn, i) => {
       const bx = btnStartX + i * 64;
       const btnBg = scene.add.rectangle(bx, actionRowY, 56, 32, btn.color, 0.9)
@@ -1499,10 +1511,8 @@ export default class DungeonMapUI {
       btnBg.on('pointerdown', () => {
         this._hidePopup();
         if (btn.type === 'room' || btn.type === 'trap') {
-          // Auto-select first matching card
           const idx = this.gameState.hand.findIndex(c => {
             if (c.type !== btn.type) return false;
-            // Prefer same id for upgrade
             if (btn.type === 'room' && cell.room) return c.id === cell.room.typeId;
             if (btn.type === 'trap' && cell.trap) return c.id === cell.trap.typeId;
             return true;
@@ -1520,16 +1530,7 @@ export default class DungeonMapUI {
       this._popupContainer.add([btnBg, btnText]);
     });
 
-    // Close button
-    const closeBtn = scene.add.text(cx, popupY + popupH - 22, '[ 關閉 ]', {
-      fontSize: '14px', color: '#aaaaff', fontFamily: FONT_FAMILY,
-      backgroundColor: '#2a2a5a', padding: { x: 12, y: 4 },
-    }).setOrigin(0.5, 1).setInteractive({ useHandCursor: true });
-
-    closeBtn.on('pointerdown', () => this._hidePopup());
-    overlay.on('pointerdown', () => this._hidePopup());
-
-    this._popupContainer.add([overlay, panel, titleText, ...contentTexts, closeBtn]);
+    this._popupContainer.add(closeBtn);
     this._popupContainer.setVisible(true);
   }
 
