@@ -222,7 +222,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       } else if (result.status === 'skipped') {
         this.emit('trapSkip', { hero, cellId: cell.id });
       } else {
-        this.emit('trapTrigger', { hero, cellId: cell.id, damage: result.damage });
+        this.emit('trapTrigger', { hero, cellId: cell.id, damage: result.damage, trapTypeId: cell.trap.typeId });
       }
       if (hero.hp <= 0) {
         this._heroDefeated(hero, cell.id);

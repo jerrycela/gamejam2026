@@ -410,11 +410,16 @@ export default class BattleUI {
         this._spawnDamagePopup(pos.x, pos.y - 20, damage, '#e74c3c');
         this._playHurtEffect(targetId);
       }
+      // Monster attack: flash monster sprite white + shake cell
+      this._flashMonsterSprite(cellId);
+      this._shakeCombatCell(cellId);
     } else if (targetType === 'monster') {
-      // Hero attacks monster: show popup at cell position
+      // Hero attacks monster: show popup at cell + flash monster + shake
       const color = holyBonus ? '#ffd700' : '#ffffff';
       const pos = this._dungeonMapUI.getCellPosition(cellId);
       if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, damage, color);
+      this._flashMonsterSprite(cellId, 0xff4444); // red tint when hit
+      this._shakeCombatCell(cellId);
     }
   }
 
@@ -432,13 +437,69 @@ export default class BattleUI {
     }
   }
 
-  _onTrapTrigger({ cellId, damage }, session) {
+  _onTrapTrigger({ cellId, damage, trapTypeId }, session) {
     if (this._sessionId !== session) return;
     sfx.play('trap_trigger');
     if (this._battleManager.getSpeedMultiplier() >= 10) return;
 
     const pos = this._dungeonMapUI.getCellPosition(cellId);
-    if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, damage, '#f39c12');
+    if (pos) {
+      this._spawnDamagePopup(pos.x, pos.y - 20, damage, '#f39c12');
+      this._spawnTrapEffect(pos.x, pos.y, trapTypeId);
+    }
+  }
+
+  /** Spawn a short-lived visual effect at cell position based on trap type. */
+  _spawnTrapEffect(x, y, trapTypeId) {
+    const scene = this._scene;
+    const mapCont = this._dungeonMapUI.getMapWorldContainer();
+
+    const TRAP_VFX = {
+      arrow:   { color: 0xcccccc, shape: 'lines',  alpha: 0.9 },
+      fire:    { color: 0xff4400, shape: 'circle', alpha: 0.7 },
+      frost:   { color: 0x66ccff, shape: 'circle', alpha: 0.6 },
+      poison:  { color: 0x44cc44, shape: 'circle', alpha: 0.5 },
+      boulder: { color: 0x886644, shape: 'square', alpha: 0.8 },
+    };
+    const vfx = TRAP_VFX[trapTypeId] || TRAP_VFX.arrow;
+
+    const gfx = scene.add.graphics();
+    gfx.setDepth(1500);
+
+    if (vfx.shape === 'lines') {
+      // Arrow lines shooting from edges toward center
+      gfx.lineStyle(2, vfx.color, vfx.alpha);
+      for (let i = 0; i < 4; i++) {
+        const angle = (Math.PI / 2) * i + Math.PI / 4;
+        const ox = Math.cos(angle) * 30;
+        const oy = Math.sin(angle) * 30;
+        gfx.lineBetween(x + ox, y + oy, x + ox * 0.3, y + oy * 0.3);
+      }
+    } else if (vfx.shape === 'circle') {
+      // Expanding circle (fire/frost/poison burst)
+      gfx.fillStyle(vfx.color, vfx.alpha);
+      gfx.fillCircle(x, y, 8);
+      gfx.lineStyle(2, vfx.color, vfx.alpha);
+      gfx.strokeCircle(x, y, 22);
+    } else {
+      // Boulder: square impact
+      gfx.fillStyle(vfx.color, vfx.alpha);
+      gfx.fillRect(x - 15, y - 15, 30, 30);
+    }
+
+    mapCont.add(gfx);
+    this._transients.push(gfx);
+
+    // Fade out and expand
+    scene.tweens.add({
+      targets: gfx,
+      alpha: 0,
+      scaleX: 1.5,
+      scaleY: 1.5,
+      duration: 350,
+      ease: 'Quad.Out',
+      onComplete: () => { if (gfx.scene) gfx.destroy(); },
+    });
   }
 
   _onDotDamage({ hero: _hero, cellId, damage }, session) {
@@ -536,20 +597,33 @@ export default class BattleUI {
       this._tweens.push(tween);
     }
 
-    // Fade out + sink hero visual
-    const tween = this._scene.tweens.add({
-      targets: visual.container,
-      alpha: 0,
-      y: visual.container.y + 10,
-      duration: 500,
-      onComplete: () => {
-        if (visual.container && visual.container.scene) {
-          visual.container.destroy();
-        }
-        this._heroVisuals.delete(hero.instanceId);
-      },
+    // Death sequence: red flash → shrink + sink
+    const sprite = visual.idleSprite || visual.sprite;
+    if (sprite) sprite.setTint(0xff0000);
+
+    // Flash red for 200ms, then shrink + sink
+    const flashTimer = this._scene.time.delayedCall(200, () => {
+      if (this._sessionId !== session) return;
+      if (sprite && sprite.scene) sprite.clearTint();
+
+      const tween = this._scene.tweens.add({
+        targets: visual.container,
+        alpha: 0,
+        scaleX: 0.3,
+        scaleY: 0.3,
+        y: visual.container.y + 20,
+        duration: 400,
+        ease: 'Quad.In',
+        onComplete: () => {
+          if (visual.container && visual.container.scene) {
+            visual.container.destroy();
+          }
+          this._heroVisuals.delete(hero.instanceId);
+        },
+      });
+      this._tweens.push(tween);
     });
-    this._tweens.push(tween);
+    this._timers.push(flashTimer);
   }
 
   _onGoldSteal({ cellId, amount }, session) {
@@ -769,11 +843,43 @@ export default class BattleUI {
   // Damage popup
   // ---------------------------------------------------------------------------
 
+  /** Flash the monster sprite in a cell briefly (attack feedback). */
+  _flashMonsterSprite(cellId, tint = 0xffffff) {
+    const cont = this._dungeonMapUI._cellContainers?.find(c => c.getData('cellId') === cellId);
+    if (!cont) return;
+    const baseSprite = cont.getData('baseSprite');
+    if (!baseSprite || !baseSprite.scene) return;
+    baseSprite.setTint(tint);
+    const timer = this._scene.time.delayedCall(120, () => {
+      if (baseSprite.scene) baseSprite.clearTint();
+    });
+    this._timers.push(timer);
+  }
+
+  /** Shake a combat cell briefly (attack impact feedback). */
+  _shakeCombatCell(cellId) {
+    const cont = this._dungeonMapUI._cellContainers?.find(c => c.getData('cellId') === cellId);
+    if (!cont || !cont.scene) return;
+    const origX = cont.x;
+    const tween = this._scene.tweens.add({
+      targets: cont,
+      x: origX + 3,
+      duration: 40,
+      yoyo: true,
+      repeat: 2,
+      ease: 'Sine.InOut',
+      onComplete: () => { cont.x = origX; },
+    });
+    this._tweens.push(tween);
+  }
+
   _spawnDamagePopup(x, y, damage, color) {
     const scene = this._scene;
     const label = typeof damage === 'string' ? damage : `-${damage}`;
+    const numDmg = typeof damage === 'number' ? damage : 0;
+    const fontSize = numDmg >= 30 ? '20px' : '16px';
     const text = scene.add.text(x, y, label, {
-      fontSize: '14px',
+      fontSize,
       color: color || '#ffffff',
       fontFamily: FONT_FAMILY,
       fontStyle: 'bold',
