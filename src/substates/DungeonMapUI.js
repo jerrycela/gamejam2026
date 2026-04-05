@@ -121,6 +121,7 @@ export default class DungeonMapUI {
       highlightBorder.strokeRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, 8);
       highlightBorder.setVisible(true);
     } else {
+      highlightBorder.clear();
       highlightBorder.setVisible(false);
       highlightBorder.setAlpha(1);
     }
@@ -1395,6 +1396,7 @@ export default class DungeonMapUI {
     for (const cont of this._cellContainers) {
       const hb = cont.getData('highlightBorder');
       if (hb) {
+        hb.clear();
         hb.setVisible(false);
         hb.setAlpha(1);
       }
