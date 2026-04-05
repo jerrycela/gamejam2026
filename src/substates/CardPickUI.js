@@ -41,9 +41,9 @@ export default class CardPickUI {
     const options = request.options || this._generateOptions();
 
     // Display 3 cards
-    const cardW = 100;
-    const cardH = 150;
-    const gap = 16;
+    const cardW = 110;
+    const cardH = 180;
+    const gap = 12;
     const totalW = cardW * 3 + gap * 2;
     const startX = (width - totalW) / 2 + cardW / 2;
     const centerY = height / 2;
@@ -88,6 +88,39 @@ export default class CardPickUI {
         }
       }
 
+      // Effect description
+      let effectStr = '';
+      if (option.type === 'room') {
+        const def = dataManager.getRoom(option.id);
+        if (def?.buffEffect) {
+          const targetMap = { undead: '亡靈系', melee: '近戰系', glutton: '暴食系', mage: '法師系', greedy: '貪財系' };
+          const eff = def.buffEffect;
+          const parts = [];
+          if (eff.def) parts.push(`防 x${eff.def}`);
+          if (eff.atk) parts.push(`攻 x${eff.atk}`);
+          if (eff.attackCdMultiplier) parts.push(`速 x${eff.attackCdMultiplier}`);
+          if (eff.skillDamage) parts.push(`技 x${eff.skillDamage}`);
+          if (eff.hpRegen) parts.push(`回 ${eff.hpRegen}/s`);
+          effectStr = `${targetMap[def.buffTarget] || ''} ${parts.join(' ')}`;
+        }
+      } else {
+        const def = dataManager.getTrap(option.id);
+        if (def) {
+          const typeMap = { physical: '物理', fire_aoe: '火焰', ice: '冰霜', poison: '毒素', physical_heavy: '重擊' };
+          effectStr = `${def.baseDamage} dmg ${typeMap[def.effectType] || ''}`;
+        }
+      }
+
+      const children = [cardBg, nameText, typeText, starText];
+      if (effectStr) {
+        const effectText = this.scene.add.text(x, centerY + 55, effectStr, {
+          fontSize: '9px', color: '#aaaaaa', fontFamily: FONT_FAMILY,
+          wordWrap: { width: cardW - 12 },
+          align: 'center',
+        }).setOrigin(0.5, 0);
+        children.push(effectText);
+      }
+
       cardBg.on('pointerdown', () => {
         this.gameState.hand.push(option);
         sfx.play('button_tap');
@@ -98,7 +131,7 @@ export default class CardPickUI {
       cardBg.on('pointerover', () => cardBg.setStrokeStyle(3, 0xffffff));
       cardBg.on('pointerout', () => cardBg.setStrokeStyle(2, 0xf1c40f));
 
-      this.container.add([cardBg, nameText, typeText, starText]);
+      this.container.add(children);
     });
 
     // Skip button
