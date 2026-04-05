@@ -977,7 +977,7 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
       return this._generateFinalBattleHeroes();
     }
 
-    const countRange = { normalBattle: [1, 3], eliteBattle: [2, 4], bossBattle: [3, 5] };
+    const countRange = { normalBattle: [2, 4], eliteBattle: [3, 5], bossBattle: [3, 5] };
     const [min, max] = countRange[eventType];
     const count = min + Math.floor(Math.random() * (max - min + 1));
 
