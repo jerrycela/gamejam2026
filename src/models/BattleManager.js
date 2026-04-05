@@ -65,8 +65,21 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
    * Main tick — called from GameScene.update(delta).
    * @param {number} dt - raw delta in ms
    */
+  /** Pause battle logic for a brief hitstop effect. Uses accumulated dt, not wall clock. */
+  pauseForHitstop(ms) {
+    this._hitstopRemaining = (this._hitstopRemaining || 0) + ms;
+  }
+
   update(dt) {
     if (!this._active) return;
+
+    // Hitstop: consume remaining pause time before processing
+    if (this._hitstopRemaining > 0) {
+      this._hitstopRemaining -= dt;
+      if (this._hitstopRemaining > 0) return; // still paused
+      dt = -this._hitstopRemaining; // use leftover dt
+      this._hitstopRemaining = 0;
+    }
 
     dt *= this._speedMultiplier;
 

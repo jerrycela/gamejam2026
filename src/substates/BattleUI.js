@@ -91,6 +91,7 @@ export default class BattleUI {
 
     // Create monster HP bars on cells
     this._monsterHpBars = new Map();
+    this._persistentTrapVfx = new Map(); // cellId -> graphics object (one per cell)
     this._createMonsterHpBars();
   }
 
@@ -410,6 +411,8 @@ export default class BattleUI {
   _onAttack({ attackerType, targetType, targetId, damage, cellId, holyBonus }, session) {
     if (this._sessionId !== session) return;
     sfx.play('battle_hit');
+    // Hitstop on heavy hits
+    if (damage >= 30) this._battleManager.pauseForHitstop(50);
     if (this._battleManager.getSpeedMultiplier() >= 10) return;
 
     if (attackerType === 'boss') {
@@ -464,6 +467,10 @@ export default class BattleUI {
     if (pos) {
       this._spawnDamagePopup(pos.x, pos.y - 20, damage, '#f39c12');
       this._spawnTrapEffect(pos.x, pos.y, trapTypeId);
+      // Hitstop on heavy trap damage
+      if (damage >= 20) this._battleManager.pauseForHitstop(50);
+      // Persistent trap residual for fire/frost/poison
+      this._spawnPersistentTrapVfx(cellId, pos.x, pos.y, trapTypeId);
     }
   }
 
@@ -518,6 +525,60 @@ export default class BattleUI {
       ease: 'Quad.Out',
       onComplete: () => { if (gfx.scene) gfx.destroy(); },
     });
+  }
+
+  /** Spawn a persistent residual effect on a cell after trap triggers (fire/frost/poison only). */
+  _spawnPersistentTrapVfx(cellId, x, y, trapTypeId) {
+    const PERSISTENT_TYPES = {
+      fire:   { color: 0xff4400, alpha: 0.15, pulse: true },
+      frost:  { color: 0x66ccff, alpha: 0.12, pulse: false },
+      poison: { color: 0x44cc44, alpha: 0.10, pulse: true },
+    };
+    const cfg = PERSISTENT_TYPES[trapTypeId];
+    if (!cfg) return; // arrow/boulder have no persistent effect
+
+    // Remove existing persistent VFX on this cell (avoid stacking)
+    const existing = this._persistentTrapVfx.get(cellId);
+    if (existing && existing.scene) existing.destroy();
+
+    const scene = this._scene;
+    const mapCont = this._dungeonMapUI.getMapWorldContainer();
+
+    const gfx = scene.add.graphics();
+    gfx.fillStyle(cfg.color, cfg.alpha);
+    gfx.fillCircle(x, y, 30);
+    gfx.setDepth(50);
+    mapCont.add(gfx);
+    this._transients.push(gfx);
+    this._persistentTrapVfx.set(cellId, gfx);
+
+    if (cfg.pulse) {
+      const pulseTween = scene.tweens.add({
+        targets: gfx,
+        alpha: cfg.alpha * 2,
+        duration: 600,
+        yoyo: true,
+        repeat: 2,
+        ease: 'Sine.InOut',
+      });
+      this._tweens.push(pulseTween);
+    }
+
+    // Auto-fade after 2.5s
+    const fadeTimer = scene.time.delayedCall(2500, () => {
+      if (!gfx.scene) return;
+      const fadeTween = scene.tweens.add({
+        targets: gfx,
+        alpha: 0,
+        duration: 500,
+        onComplete: () => {
+          if (gfx.scene) gfx.destroy();
+          this._persistentTrapVfx.delete(cellId);
+        },
+      });
+      this._tweens.push(fadeTween);
+    });
+    this._timers.push(fadeTimer);
   }
 
   _onDotDamage({ hero: _hero, cellId, damage }, session) {
