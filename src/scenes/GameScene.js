@@ -64,7 +64,7 @@ export default class GameScene extends Phaser.Scene {
       if (key !== 'flipMatrix' && key !== 'dungeonMap' && key !== 'torture' && key !== 'monsterList' && key !== 'bestiary') {
         const bg = this.add.rectangle(width / 2, contentH / 2, width, contentH, 0x1a1a2e);
         const label = this.add.text(width / 2, contentH / 2, key, {
-          fontSize: '24px', color: '#555577', fontFamily: 'monospace',
+          fontSize: '24px', color: '#9999bb', fontFamily: 'monospace',
         }).setOrigin(0.5);
         container.add([bg, label]);
       }
@@ -283,7 +283,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Debug: force end button
     const endBtn = this.add.text(width - 16, botBarY, '結束戰鬥', {
-      fontSize: '13px', color: '#888888', fontFamily: 'sans-serif',
+      fontSize: '13px', color: '#aaaacc', fontFamily: 'sans-serif',
       backgroundColor: '#333333', padding: { x: 8, y: 4 },
     }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
 
@@ -417,7 +417,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Leave button
     const leaveBtn = this.add.text(width / 2, height * 0.8, '離開', {
-      fontSize: '18px', color: '#aaaaaa', fontFamily: 'sans-serif',
+      fontSize: '18px', color: '#cccccc', fontFamily: 'sans-serif',
       backgroundColor: '#333333', padding: { x: 20, y: 8 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
@@ -451,7 +451,7 @@ export default class GameScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
 
       const text = this.add.text(centerX, centerY, label, {
-        fontSize: '14px', color: '#888899', fontFamily: 'sans-serif',
+        fontSize: '14px', color: '#aaaacc', fontFamily: 'sans-serif',
       }).setOrigin(0.5);
 
       hitZone.on('pointerdown', () => {
@@ -460,10 +460,10 @@ export default class GameScene extends Phaser.Scene {
       });
 
       hitZone.on('pointerover', () => {
-        if (this.currentSubstate !== key) text.setColor('#aaaacc');
+        if (this.currentSubstate !== key) text.setColor('#ccccee');
       });
       hitZone.on('pointerout', () => {
-        if (this.currentSubstate !== key) text.setColor('#888899');
+        if (this.currentSubstate !== key) text.setColor('#aaaacc');
       });
 
       this.tabButtons.push({ key, text, hitZone });
@@ -472,7 +472,7 @@ export default class GameScene extends Phaser.Scene {
 
   _updateTabHighlight(activeKey) {
     this.tabButtons.forEach(({ key, text }) => {
-      text.setColor(key === activeKey ? '#e74c3c' : '#888899');
+      text.setColor(key === activeKey ? '#ff6b6b' : '#aaaacc');
     });
   }
 }

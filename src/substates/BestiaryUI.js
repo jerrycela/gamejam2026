@@ -12,7 +12,7 @@ const TYPE_COLORS = {
   fire: '#e67e22',
   tank: '#95a5a6',
   physical: '#cc99ff',
-  balanced: '#aaaaaa',
+  balanced: '#cccccc',
   legendary: '#ff66ff',
 };
 
@@ -65,7 +65,7 @@ export default class BestiaryUI {
 
     if (allHeroes.length > MAX_VISIBLE) {
       const more = this._scene.add.text(width / 2, startY + MAX_VISIBLE * ROW_HEIGHT, `+${allHeroes.length - MAX_VISIBLE} ...`, {
-        fontSize: '12px', color: '#666666', fontFamily: 'monospace',
+        fontSize: '12px', color: '#aaaacc', fontFamily: 'monospace',
       }).setOrigin(0.5);
       this._rootContainer.add(more);
     }
@@ -125,11 +125,11 @@ export default class BestiaryUI {
     const lockIcon = this._scene.add.arc(36, y, 16, 0, 360, false, 0x222233, 1);
 
     const lockText = this._scene.add.text(width / 2, y - 8, '??? 未知英雄', {
-      fontSize: '16px', color: '#444455', fontFamily: 'monospace', fontStyle: 'bold',
+      fontSize: '16px', color: '#9999cc', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     const hintText = this._scene.add.text(width / 2, y + 14, '尚未遭遇', {
-      fontSize: '12px', color: '#333344', fontFamily: 'monospace',
+      fontSize: '12px', color: '#9999bb', fontFamily: 'monospace',
     }).setOrigin(0.5);
 
     this._rootContainer.add([rowBg, lockIcon, lockText, hintText]);

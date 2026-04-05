@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import { EVENT_TYPES, CARD_WIDTH, CARD_HEIGHT, CARD_GAP, MATRIX_ROWS, MATRIX_COLS, TOP_HUD_HEIGHT } from '../utils/constants.js';
 import sfx from '../utils/SFXManager.js';
 
@@ -57,7 +58,7 @@ export default class FlipMatrixUI {
         const labelText = isFaceUp ? eventDef.label : '?';
         const labelStyle = isFaceUp
           ? { fontSize: '14px', color: '#ffffff', fontFamily: 'sans-serif' }
-          : { fontSize: '28px', color: '#7777aa', fontFamily: 'serif' };
+          : { fontSize: '28px', color: '#9999cc', fontFamily: 'serif' };
         const labelY = isFaceUp ? y + 10 : y;
         const label = this.scene.add.text(x, labelY, labelText, labelStyle).setOrigin(0.5);
 
@@ -105,17 +106,20 @@ export default class FlipMatrixUI {
   }
 
   _playFlipAnimation(row, col, card) {
-    sfx.play('card_flip');
     const obj = this.cardObjects[row][col];
     const eventDef = EVENT_TYPES[card.eventType];
+    const targets = [obj.bg, obj.label];
 
-    // Phase 1: scaleX 1->0 (150ms)
+    // Phase 1: compress horizontally + slight vertical bulge (180ms)
     this.scene.tweens.add({
-      targets: [obj.bg, obj.label],
+      targets,
       scaleX: 0,
-      duration: 150,
+      scaleY: 1.1,
+      duration: 180,
       ease: 'Quad.easeIn',
       onComplete: () => {
+        if (obj.bg.scene === undefined) return; // safety: target destroyed
+
         // Change visuals to face-up
         obj.bg.setFillStyle(eventDef.color);
         obj.bg.setStrokeStyle(2, 0xffffff);
@@ -129,35 +133,63 @@ export default class FlipMatrixUI {
         const icon = this.scene.add.text(obj.x, obj.y - 15, iconText, {
           fontSize: '24px',
         }).setOrigin(0.5);
-        icon.scaleX = 0; // Start scaled to 0 for flip animation
+        icon.scaleX = 0;
+        icon.scaleY = 1.1;
         this.container.add(icon);
 
-        // Phase 2: scaleX 0->1 (150ms)
+        // White flash effect (ADD blend for glow)
+        const flash = this.scene.add.rectangle(obj.x, obj.y, CARD_WIDTH + 4, CARD_HEIGHT + 4, 0xffffff, 0.6);
+        flash.setBlendMode(Phaser.BlendModes.ADD);
+        this.container.add(flash);
+        this.scene.tweens.add({
+          targets: flash,
+          alpha: 0,
+          duration: 200,
+          ease: 'Quad.easeOut',
+          onComplete: () => flash.destroy(),
+        });
+
+        // Play SFX at reveal moment (synced with visual)
+        sfx.play('card_flip');
+
+        // Phase 2: expand with elastic bounce (220ms)
         this.scene.tweens.add({
           targets: [obj.bg, obj.label, icon],
           scaleX: 1,
-          duration: 150,
-          ease: 'Quad.easeOut',
+          scaleY: 1,
+          duration: 220,
+          ease: 'Back.easeOut',
           onComplete: () => {
-            // Notify event handler
-            if (this._onFlipCallback) {
-              this._onFlipCallback(card, () => {
-                // Unlock callback — called when event is fully resolved
-                this._isProcessing = false;
-              });
-            } else {
-              this._isProcessing = false;
-            }
+            if (obj.bg.scene === undefined) return; // safety check
+
+            // Bounce: card pops up then settles
+            this.scene.tweens.add({
+              targets: [obj.bg, obj.label, icon],
+              y: `-=8`,
+              duration: 200,
+              yoyo: true,
+              ease: 'Bounce.easeOut',
+              onComplete: () => {
+                // Notify event handler
+                if (this._onFlipCallback) {
+                  this._onFlipCallback(card, () => {
+                    this._isProcessing = false;
+                  });
+                } else {
+                  this._isProcessing = false;
+                }
+              }
+            });
           }
         });
       }
     });
 
-    // Slight y float during flip
+    // Slight y float during Phase 1
     this.scene.tweens.add({
-      targets: [obj.bg, obj.label],
-      y: obj.y - 4,
-      duration: 150,
+      targets,
+      y: obj.y - 6,
+      duration: 180,
       yoyo: true,
       ease: 'Sine.easeOut'
     });

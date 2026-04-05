@@ -27,7 +27,7 @@ AND each card SHALL be assigned a random event type:
 #### Scenario: Card flip interaction
 
 WHEN a player taps a face-down card
-THEN the card SHALL play a Y-axis 3D flip animation (300ms, ease-out)
+THEN the card SHALL play a simulated flip animation using scaleX/scaleY/flash/bounce (400ms total)
 AND the revealed event SHALL be processed
 
 ---

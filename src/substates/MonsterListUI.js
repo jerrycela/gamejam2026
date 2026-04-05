@@ -5,7 +5,7 @@ const ROW_HEIGHT = 72;
 const MAX_VISIBLE = 8;
 
 const STATUS_COLORS = {
-  deployed: { bg: 0x444466, text: '#888888', label: '已部署' },
+  deployed: { bg: 0x444466, text: '#9999bb', label: '已部署' },
   standby:  { bg: 0x224422, text: '#66cc66', label: '待命' },
 };
 
@@ -29,7 +29,7 @@ export default class MonsterListUI {
 
     if (roster.length === 0) {
       const empty = this._scene.add.text(width / 2, 160, '尚無怪物', {
-        fontSize: '14px', color: '#555555', fontFamily: 'monospace',
+        fontSize: '14px', color: '#9999bb', fontFamily: 'monospace',
       }).setOrigin(0.5);
       this._rootContainer.add(empty);
       return;
@@ -44,7 +44,7 @@ export default class MonsterListUI {
 
     if (roster.length > MAX_VISIBLE) {
       const more = this._scene.add.text(width / 2, startY + MAX_VISIBLE * ROW_HEIGHT, `+${roster.length - MAX_VISIBLE} ...`, {
-        fontSize: '12px', color: '#666666', fontFamily: 'monospace',
+        fontSize: '12px', color: '#aaaacc', fontFamily: 'monospace',
       }).setOrigin(0.5);
       this._rootContainer.add(more);
     }
@@ -103,7 +103,7 @@ export default class MonsterListUI {
     // CellId display for deployed monsters
     if (isDeployed) {
       const cellLabel = this._scene.add.text(width - 120, y + 6, instance.placedCellId, {
-        fontSize: '10px', color: '#666688', fontFamily: 'monospace',
+        fontSize: '10px', color: '#9999bb', fontFamily: 'monospace',
       }).setOrigin(0.5);
       elements.push(cellLabel);
     }

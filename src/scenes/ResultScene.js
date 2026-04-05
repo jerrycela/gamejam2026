@@ -84,7 +84,7 @@ export default class ResultScene extends Phaser.Scene {
 
     // Back to Menu button
     this.add.text(width / 2, height * 0.86, '返回主選單', {
-      fontSize: '18px', color: '#aaaaaa', fontFamily: 'sans-serif',
+      fontSize: '18px', color: '#cccccc', fontFamily: 'sans-serif',
       backgroundColor: '#333333', padding: { x: 20, y: 8 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {

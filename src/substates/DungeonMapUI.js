@@ -601,7 +601,7 @@ export default class DungeonMapUI {
 
     if (!hand || hand.length === 0) {
       const emptyText = scene.add.text(width / 2, HAND_H / 2, '翻牌取得卡牌', {
-        fontSize: '14px', color: '#555577', fontFamily: 'sans-serif',
+        fontSize: '14px', color: '#9999bb', fontFamily: 'sans-serif',
       }).setOrigin(0.5);
       this._handAreaContainer.add(emptyText);
       return;

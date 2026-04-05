@@ -22,13 +22,13 @@ export default class TopHUD {
     // Mute toggle
     const muteLabel = sfx.muted ? 'x' : '♪';
     this.muteBtn = scene.add.text(this.dayText.x + this.dayText.width + 16, TOP_HUD_HEIGHT / 2, muteLabel, {
-      fontSize: '18px', color: sfx.muted ? '#666666' : '#ffffff', fontFamily: 'sans-serif',
+      fontSize: '18px', color: sfx.muted ? '#9999bb' : '#ffffff', fontFamily: 'sans-serif',
     }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
 
     this.muteBtn.on('pointerdown', () => {
       const muted = sfx.toggleMute();
       this.muteBtn.setText(muted ? 'x' : '♪');
-      this.muteBtn.setColor(muted ? '#666666' : '#ffffff');
+      this.muteBtn.setColor(muted ? '#9999bb' : '#ffffff');
     });
 
     this.container.add(this.muteBtn);

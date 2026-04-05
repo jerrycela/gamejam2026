@@ -103,7 +103,7 @@ export default class CardPickUI {
 
     // Skip button
     const skipBtn = this.scene.add.text(width - 20, height / 4, '跳過', {
-      fontSize: '16px', color: '#aaaaaa', fontFamily: 'sans-serif',
+      fontSize: '16px', color: '#cccccc', fontFamily: 'sans-serif',
       backgroundColor: '#333333', padding: { x: 12, y: 6 }
     }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
 

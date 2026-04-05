@@ -129,7 +129,7 @@ export default class TortureUI {
           fontSize: '20px',
         }).setOrigin(0.5);
         const costText = this._scene.add.text(0, 16, `解鎖 ${slot.cost}G`, {
-          fontSize: '13px', color: '#aaaaaa', fontFamily: 'monospace',
+          fontSize: '13px', color: '#cccccc', fontFamily: 'monospace',
         }).setOrigin(0.5);
 
         const hitZone = this._scene.add.zone(0, 0, SLOT_RADIUS * 2, SLOT_RADIUS * 2).setInteractive({ useHandCursor: true });
@@ -142,7 +142,7 @@ export default class TortureUI {
         border.lineStyle(2, 0x666666, 0.6);
         border.strokeCircle(0, 0, SLOT_RADIUS);
         const emptyText = this._scene.add.text(0, 0, '空', {
-          fontSize: '18px', color: '#555555', fontFamily: 'monospace',
+          fontSize: '18px', color: '#9999bb', fontFamily: 'monospace',
         }).setOrigin(0.5);
 
         const hitZone = this._scene.add.zone(0, 0, SLOT_RADIUS * 2, SLOT_RADIUS * 2).setInteractive({ useHandCursor: true });
@@ -193,13 +193,13 @@ export default class TortureUI {
 
     // Label
     const label = this._scene.add.text(width / 2, stagingY - 35, `俘虜 (${prisoners.length})`, {
-      fontSize: '14px', color: '#888888', fontFamily: 'monospace',
+      fontSize: '14px', color: '#aaaacc', fontFamily: 'monospace',
     }).setOrigin(0.5);
     this._rootContainer.add(label);
 
     if (prisoners.length === 0) {
       const emptyText = this._scene.add.text(width / 2, stagingY + 10, '尚無俘虜', {
-        fontSize: '13px', color: '#555555', fontFamily: 'monospace',
+        fontSize: '13px', color: '#9999bb', fontFamily: 'monospace',
       }).setOrigin(0.5);
       this._rootContainer.add(emptyText);
       return;
