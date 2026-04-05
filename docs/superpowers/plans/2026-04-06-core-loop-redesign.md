@@ -54,10 +54,10 @@ export const MONSTER_STAR_MULTIPLIER = { 1: 1.0, 2: 1.3, 3: 1.6 };
 - [ ] **Step 3: Update drawCosts.json**
 
 ```json
-[0, 0, 0, 0, 0, 50, 100, 150, 250, 350, 500]
+[50, 100, 150, 250, 350, 500]
 ```
 
-Index 0-4 = free (flips 1-5), index 5+ = paid (flips 6+). Cap at 500 (last value reused for index > 10).
+This array holds **post-free draw costs only**. `getDrawCost()` will offset by `FREE_DRAW_COUNT` — see Task 3 Step 2.
 
 - [ ] **Step 4: Build and verify**
 
@@ -148,15 +148,18 @@ advanceDay() {
 }
 ```
 
-- [ ] **Step 2: Update getDrawCost to use FREE_DRAW_COUNT**
+- [ ] **Step 2: Update getDrawCost to use FREE_DRAW_COUNT with offset**
 
 Replace `getDrawCost()` (line 212-214) with:
 ```javascript
 getDrawCost() {
   if (this.drawCount < FREE_DRAW_COUNT) return 0;
-  return this._dataManager.getDrawCost(this.drawCount);
+  const paidIndex = this.drawCount - FREE_DRAW_COUNT;
+  return this._dataManager.getDrawCost(paidIndex);
 }
 ```
+
+`getDrawCost(paidIndex)` reads from the updated `drawCosts.json` which now starts at index 0 = 50G.
 
 Import `FREE_DRAW_COUNT` from constants at top of file.
 
@@ -270,17 +273,18 @@ _handleMonster(flipCard, unlockCallback) {
   const gameScene = this.gameScene;
   const dataManager = scene.registry.get('dataManager');
 
-  // Generate 3 candidates
-  const allMonsters = dataManager.getAllMonsters();
+  // Generate 3 candidates from unlocked pool
+  const metaState = scene.registry.get('metaState');
+  const unlockedMonsters = buildUnlockedPool(dataManager.monsters, 'monsters', metaState);
   const candidates = [];
   const usedTypes = new Set();
 
-  for (let i = 0; i < 3 && usedTypes.size < allMonsters.length; i++) {
+  for (let i = 0; i < 3 && usedTypes.size < unlockedMonsters.length; i++) {
     // Pick a random monster type not yet used in this selection
     let type;
     do {
-      type = allMonsters[Math.floor(Math.random() * allMonsters.length)];
-    } while (usedTypes.has(type.id) && usedTypes.size < allMonsters.length);
+      type = unlockedMonsters[Math.floor(Math.random() * unlockedMonsters.length)];
+    } while (usedTypes.has(type.id) && usedTypes.size < unlockedMonsters.length);
     usedTypes.add(type.id);
 
     // Roll star rating
@@ -394,13 +398,16 @@ _showMonsterPickPanel(candidates, onPick) {
       container.removeAll(true);
       container.setVisible(false);
       onPick(cand);
+      // Refresh monster list and map UIs after recruiting
+      if (gameScene.monsterListUI) gameScene.monsterListUI.rebuild();
+      if (gameScene.dungeonMapUI) gameScene.dungeonMapUI.updateBattleButton();
     });
     container.add(hitZone);
   });
 }
 ```
 
-Import `FONT_FAMILY` and `SpriteHelper` at top of FlipEventHandler.js.
+Import `FONT_FAMILY` and `SpriteHelper` at top of FlipEventHandler.js. Also import `buildUnlockedPool` from `../utils/buildUnlockedPool.js` (already imported in current file for room/trap pools).
 
 - [ ] **Step 4: Add _rollStarRating helper**
 
@@ -519,15 +526,28 @@ The final battle config multipliers (FINAL_BATTLE_CONFIG) remain as-is.
 
 - [ ] **Step 3: Add MONSTER_STAR_MULTIPLIER to monster combat stats**
 
-In the battle tick logic where monster stats are read, apply star rating multiplier. Find where `cell.monster.currentHp` or base stats are initialized for combat (search for monster stat initialization in `start()` method). Add:
+Monster stats are read in two places — both need star rating:
+
+**A) `_tickMonsterFight` (line 308-329):** Monster ATK is computed from `monsterDef.baseAtk`. After line 312 (`const monsterDef = ...`), add star multiplier:
 
 ```javascript
 const starMult = MONSTER_STAR_MULTIPLIER[monster.starRating || 1] || 1.0;
-monster.currentHp = Math.round(monsterDef.baseHp * starMult * (monster.buffFlags?.hpMult || 1));
-monster.currentAtk = Math.round(monsterDef.baseAtk * starMult * (monster.buffFlags?.atkMult || 1));
 ```
 
-Import `MONSTER_STAR_MULTIPLIER` from constants.
+Then apply `starMult` wherever `monsterDef.baseAtk` and `monsterDef.baseHp` are used in this method. Specifically, in the hero damage calc (line 329):
+```javascript
+const effectiveDef = Math.round(monsterDef.baseDef * roomBuff.defMult);
+```
+And in monster attack calc, multiply `monsterDef.baseAtk` by `starMult`.
+
+**B) `_restoreMonsters` (line 862-873):** HP is reset from `def.baseHp`. Update line 869:
+
+```javascript
+const starMult = MONSTER_STAR_MULTIPLIER[cell.monster.starRating || 1] || 1.0;
+const maxHp = Math.round(baseHp * starMult * buffFlags.hpMult);
+```
+
+Import `MONSTER_STAR_MULTIPLIER` from constants at top of BattleManager.js.
 
 - [ ] **Step 4: Build and verify**
 
@@ -586,8 +606,9 @@ updateBattleButton() {
   this._battleBtnDisabled = !hasDefense;
   this._battleBtnBg.fillColor = hasDefense ? 0xc0392b : 0x555555;
   this._battleBtnBg.setStrokeStyle(2, hasDefense ? 0xff6666 : 0x777777);
-  this._battleBtnLabel.setText(`迎戰 Day ${this.gameState.day}`);
+  this._battleBtnLabel.setText(hasDefense ? `迎戰 Day ${this.gameState.day}` : '至少部署一隻怪物');
   this._battleBtnLabel.setColor(hasDefense ? '#ffffff' : '#999999');
+  this._battleBtnLabel.setFontSize(hasDefense ? '13px' : '10px');
 }
 ```
 
