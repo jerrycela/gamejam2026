@@ -7,6 +7,7 @@ export default class FlipEventHandler {
     this.scene = scene;
     this.gameState = gameState;
     this.gameScene = gameScene;
+    this._currentToast = null;
   }
 
   // Called after flip animation. unlockCallback() must be called when event is fully resolved.
@@ -59,7 +60,7 @@ export default class FlipEventHandler {
           if (pool.length > 0) {
             const pick = pool[Math.floor(Math.random() * pool.length)];
             this.gameState.hand.push({ type: pick.type, id: pick.id, starRating: 2 });
-            this._showToast('精英獎勵：獲得一張卡牌！', 1200);
+            this._showToast('精英獎勵：獲得一張卡牌！', 1200, null, 'reward');
           }
         }
 
@@ -75,7 +76,7 @@ export default class FlipEventHandler {
           this.gameScene.battleManager.forceEnd('defenseSuccess');
         }
       };
-    });
+    }, 'battle');
   }
 
   // unlockCallback is intentionally not called — the run ends and GameScene is abandoned.
@@ -98,7 +99,7 @@ export default class FlipEventHandler {
           this.gameScene.battleManager.forceEnd('defenseSuccess');
         }
       };
-    });
+    }, 'battle');
   }
 
   _endRun(result) {
@@ -134,7 +135,13 @@ export default class FlipEventHandler {
       this._showToast(`獲得 ${gold} 金幣！`, 1200, () => {
         this.gameState.resolveCard(flipCard.row, flipCard.col);
         this._checkDayEnd(unlockCallback);
-      });
+      }, 'reward');
+      const cardObj = this.gameScene.flipMatrixUI?.cardObjects?.[flipCard.row]?.[flipCard.col];
+      if (cardObj) {
+        this._playCoinFlyAnimation(cardObj.x, cardObj.y, gold);
+      } else {
+        this._playCoinFlyAnimation(this.scene.scale.width / 2, this.scene.scale.height / 2, gold);
+      }
     } else {
       // 20%: Random card to hand
       const dataManager = this.scene.registry.get('dataManager');
@@ -149,18 +156,28 @@ export default class FlipEventHandler {
       this._showToast(`獲得 ${pick.type === 'room' ? '房間' : '陷阱'}卡！`, 1200, () => {
         this.gameState.resolveCard(flipCard.row, flipCard.col);
         this._checkDayEnd(unlockCallback);
-      });
+      }, 'reward');
     }
   }
 
   _handleTreasure(flipCard, unlockCallback) {
     const gold = 100 + Math.floor(Math.random() * 201); // 100-300
     this.gameState.gold += gold;
-    sfx.play('coin');
+    // Don't play coin SFX here — it plays when coins arrive at TopHUD
     this._showToast(`寶藏！獲得 ${gold} 金幣！`, 1500, () => {
       this.gameState.resolveCard(flipCard.row, flipCard.col);
       this._checkDayEnd(unlockCallback);
-    });
+    }, 'treasure');
+
+    // Coin fly animation — need card position
+    const cardObj = this.gameScene.flipMatrixUI?.cardObjects?.[flipCard.row]?.[flipCard.col];
+    if (cardObj) {
+      this._playCoinFlyAnimation(cardObj.x, cardObj.y, gold);
+    } else {
+      // Fallback: animate from center
+      const { width, height } = this.scene.scale;
+      this._playCoinFlyAnimation(width / 2, height / 2, gold);
+    }
   }
 
   _handleShop(flipCard, unlockCallback) {
@@ -194,16 +211,120 @@ export default class FlipEventHandler {
     }
   }
 
-  _showToast(text, duration, callback) {
+  _showToast(text, duration, callback, toastType = 'default') {
     const { width, height } = this.scene.scale;
-    const toast = this.scene.add.text(width / 2, height / 2, text, {
-      fontSize: '24px', color: '#ffffff', fontFamily: 'sans-serif',
-      backgroundColor: 'rgba(0,0,0,0.7)', padding: { x: 20, y: 10 }
-    }).setOrigin(0.5).setDepth(1000);
 
-    this.scene.time.delayedCall(duration, () => {
-      toast.destroy();
-      if (callback) callback();
+    // Destroy existing toast
+    if (this._currentToast) {
+      this._currentToast.destroy();
+      this._currentToast = null;
+    }
+
+    // Toast colors by type (using Rectangle + Text for CANVAS compatibility)
+    const TOAST_COLORS = {
+      battle:   { bg: 0xc0392b, alpha: 0.85 },
+      treasure: { bg: 0xb8860b, alpha: 0.85 },
+      reward:   { bg: 0x27ae60, alpha: 0.85 },
+      shop:     { bg: 0x2980b9, alpha: 0.85 },
+      default:  { bg: 0x000000, alpha: 0.7 },
+    };
+    const colorDef = TOAST_COLORS[toastType] || TOAST_COLORS.default;
+
+    // Create toast as container with bg rectangle + text
+    const toastText = this.scene.add.text(0, 0, text, {
+      fontSize: '24px', color: '#ffffff', fontFamily: 'sans-serif',
+    }).setOrigin(0.5);
+
+    const padding = { x: 24, y: 12 };
+    const bgRect = this.scene.add.rectangle(0, 0,
+      toastText.width + padding.x * 2,
+      toastText.height + padding.y * 2,
+      colorDef.bg, colorDef.alpha
+    ).setOrigin(0.5);
+
+    const container = this.scene.add.container(width / 2, height / 2 - 20, [bgRect, toastText]);
+    container.setDepth(1000);
+    container.setAlpha(0);
+    this._currentToast = container;
+
+    // Fade in (200ms)
+    this.scene.tweens.add({
+      targets: container,
+      alpha: 1,
+      y: height / 2,
+      duration: 200,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        // Hold, then fade out
+        this.scene.time.delayedCall(duration, () => {
+          if (!container.scene) return; // safety check
+          this.scene.tweens.add({
+            targets: container,
+            alpha: 0,
+            y: height / 2 - 10,
+            duration: 300,
+            ease: 'Quad.easeIn',
+            onComplete: () => {
+              container.destroy();
+              if (this._currentToast === container) this._currentToast = null;
+              if (callback) callback();
+            }
+          });
+        });
+      }
     });
+  }
+
+  _playCoinFlyAnimation(startX, startY, goldAmount) {
+    const targetPos = this.gameScene.topHUD.getGoldPosition();
+    const coinCount = Math.min(5, Math.max(3, Math.ceil(goldAmount / 50)));
+
+    const controlY = Math.min(startY, targetPos.y) - 80;
+
+    for (let i = 0; i < coinCount; i++) {
+      const coin = this.scene.add.circle(startX, startY, 12, 0xf1c40f);
+      const coinLabel = this.scene.add.text(startX, startY, 'G', {
+        fontSize: '10px', color: '#8B6914', fontFamily: 'monospace', fontStyle: 'bold',
+      }).setOrigin(0.5);
+      coin.setDepth(1500);
+      coinLabel.setDepth(1501);
+
+      const isLast = (i === coinCount - 1);
+
+      this.scene.time.delayedCall(i * 80, () => {
+        if (!coin.scene) return;
+
+        const dummy = { t: 0 };
+        this.scene.tweens.add({
+          targets: dummy,
+          t: 1,
+          duration: 500,
+          ease: 'Quad.easeIn',
+          onUpdate: () => {
+            if (!coin.scene) return;
+            const t = dummy.t;
+            const mt = 1 - t;
+            // Quadratic bezier
+            const controlX = (startX + targetPos.x) / 2;
+            const x = mt * mt * startX + 2 * mt * t * controlX + t * t * targetPos.x;
+            const y = mt * mt * startY + 2 * mt * t * controlY + t * t * targetPos.y;
+            coin.setPosition(x, y);
+            coinLabel.setPosition(x, y);
+            // Scale down as approaching target
+            const scale = 1 - t * 0.5;
+            coin.setScale(scale);
+            coinLabel.setScale(scale);
+          },
+          onComplete: () => {
+            coin.destroy();
+            coinLabel.destroy();
+            if (isLast) {
+              sfx.play('coin');
+              this.gameScene.topHUD.animateGoldChange();
+            }
+          }
+        });
+      });
+    }
   }
 }

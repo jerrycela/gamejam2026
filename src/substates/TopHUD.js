@@ -72,6 +72,24 @@ export default class TopHUD {
     this.drawBtn.setInteractive(canAfford ? { useHandCursor: true } : false);
   }
 
+  animateGoldChange() {
+    this.goldText.setText(`${this.gameState.gold} G`);
+    // Stop any existing bounce tween
+    if (this._goldBounceTween) this._goldBounceTween.stop();
+    this.goldText.setScale(1);
+    this._goldBounceTween = this.scene.tweens.add({
+      targets: this.goldText,
+      scale: 1.3,
+      duration: 100,
+      yoyo: true,
+      ease: 'Back.easeOut',
+    });
+  }
+
+  getGoldPosition() {
+    return { x: this.goldText.x, y: this.goldText.y };
+  }
+
   getContainer() {
     return this.container;
   }
