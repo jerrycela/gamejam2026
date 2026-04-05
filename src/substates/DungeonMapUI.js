@@ -769,6 +769,59 @@ export default class DungeonMapUI {
     return Math.max(minScroll, Math.min(0, value));
   }
 
+  /** Get current scroll Y position. */
+  getScrollY() { return this._scrollY; }
+
+  /** Scroll map to center a specific cell on screen. */
+  scrollToCell(cellId, duration = 300) {
+    const pos = this.getCellPosition(cellId);
+    if (!pos) return;
+    const viewportH = this._viewportH();
+    const targetScrollY = this._clampScroll(-(pos.y - viewportH / 2));
+
+    if (duration <= 0) {
+      this._scrollY = targetScrollY;
+      this._mapWorldContainer.y = TOP_HUD_HEIGHT + this._scrollY;
+      return;
+    }
+
+    // Stop inertia
+    this._velocityY = 0;
+
+    // Tween scroll
+    if (this._scrollTween && this._scrollTween.isPlaying()) this._scrollTween.stop();
+    this._scrollTween = this.scene.tweens.add({
+      targets: this,
+      _scrollY: targetScrollY,
+      duration,
+      ease: 'Sine.InOut',
+      onUpdate: () => {
+        this._mapWorldContainer.y = TOP_HUD_HEIGHT + this._scrollY;
+      },
+    });
+  }
+
+  /** Set scroll Y to a specific value, optionally with tween. */
+  setScrollY(value, duration = 0) {
+    const clamped = this._clampScroll(value);
+    if (duration <= 0) {
+      this._scrollY = clamped;
+      this._mapWorldContainer.y = TOP_HUD_HEIGHT + this._scrollY;
+      return;
+    }
+    this._velocityY = 0;
+    if (this._scrollTween && this._scrollTween.isPlaying()) this._scrollTween.stop();
+    this._scrollTween = this.scene.tweens.add({
+      targets: this,
+      _scrollY: clamped,
+      duration,
+      ease: 'Sine.InOut',
+      onUpdate: () => {
+        this._mapWorldContainer.y = TOP_HUD_HEIGHT + this._scrollY;
+      },
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // Inertia update loop
   // ---------------------------------------------------------------------------

@@ -5,9 +5,10 @@ import { MOVE_DURATION, FONT_FAMILY } from '../utils/constants.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
 import sfx from '../utils/SFXManager.js';
 
-const HP_BAR_W = 30;
+const HP_BAR_W = 36;
 const HP_BAR_H = 4;
-const HERO_RADIUS = 12;
+const HERO_RADIUS = 18;
+const HERO_SPRITE_SIZE = 36;
 
 export default class BattleUI {
   /**
@@ -84,6 +85,9 @@ export default class BattleUI {
     if (routes.length > 0) {
       this._dungeonMapUI.drawForecastRoute(routes[0]);
     }
+
+    // Store pre-battle scroll position for restoration
+    this._preBattleScrollY = this._dungeonMapUI.getScrollY();
 
     // Create monster HP bars on cells
     this._monsterHpBars = new Map();
@@ -207,19 +211,19 @@ export default class BattleUI {
     const walkKey = `${baseId}_walk`;
 
     // Idle sprite (static image)
-    const idleSprite = SpriteHelper.createSprite(scene, baseId, 0, -4, 24);
+    const idleSprite = SpriteHelper.createSprite(scene, baseId, 0, -4, HERO_SPRITE_SIZE);
 
     // Walk sprite (spritesheet, hidden by default)
     let walkSprite = null;
     if (scene.anims.exists(walkKey)) {
       walkSprite = scene.add.sprite(0, -4, walkKey).setOrigin(0.5);
-      walkSprite.displayWidth = 24;
-      walkSprite.displayHeight = 24;
+      walkSprite.displayWidth = HERO_SPRITE_SIZE;
+      walkSprite.displayHeight = HERO_SPRITE_SIZE;
       walkSprite.setVisible(false);
     }
 
     // Status ring for debuff indicators (transparent by default)
-    const statusRing = scene.add.arc(0, -4, 14, 0, 360, false, 0x000000, 0);
+    const statusRing = scene.add.arc(0, -4, HERO_SPRITE_SIZE / 2 + 2, 0, 360, false, 0x000000, 0);
 
     // HP bar background (gray)
     const hpBg = scene.add.rectangle(0, HERO_RADIUS + 4, HP_BAR_W, HP_BAR_H, 0x444444);
@@ -281,6 +285,9 @@ export default class BattleUI {
     visual.lerpFrom = from;
     visual.lerpTo = to;
 
+    // Camera: anticipatory pan toward destination
+    this._dungeonMapUI.scrollToCell(toCellId, 500);
+
     // Skip walk animation in high speed mode
     if (this._battleManager.getSpeedMultiplier() >= 10) return;
 
@@ -307,6 +314,9 @@ export default class BattleUI {
 
     const visual = this._heroVisuals.get(hero.instanceId);
     if (!visual) return;
+
+    // Camera: follow hero to arrived cell
+    this._dungeonMapUI.scrollToCell(cellId, 300);
 
     // Snap to cell position
     const pos = this._dungeonMapUI.getCellPosition(cellId);
@@ -374,8 +384,9 @@ export default class BattleUI {
   _onCombatStart({ cellId }, session) {
     if (this._sessionId !== session) return;
     this._dungeonMapUI.setCellHighlight(cellId, 0xff0000);
-    // Pulse animation on the combat cell highlight
     this._pulseCellHighlight(cellId);
+    // Camera: pan to combat cell
+    this._dungeonMapUI.scrollToCell(cellId, 300);
   }
 
   _pulseCellHighlight(cellId) {
@@ -657,6 +668,11 @@ export default class BattleUI {
 
     // Show per-cell battle stats overlay on map
     if (cellStats) this._showCellStatsOverlay(cellStats);
+
+    // Restore pre-battle scroll position
+    if (this._preBattleScrollY !== undefined) {
+      this._dungeonMapUI.setScrollY(this._preBattleScrollY, 500);
+    }
 
     const scene = this._scene;
     const { width, height } = scene.scale;
