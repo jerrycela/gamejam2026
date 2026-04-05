@@ -367,6 +367,26 @@ export default class BattleUI {
   _onCombatStart({ cellId }, session) {
     if (this._sessionId !== session) return;
     this._dungeonMapUI.setCellHighlight(cellId, 0xff0000);
+    // Pulse animation on the combat cell highlight
+    this._pulseCellHighlight(cellId);
+  }
+
+  _pulseCellHighlight(cellId) {
+    const cont = this._dungeonMapUI._cellContainers?.find(c => c.getData('cellId') === cellId);
+    if (!cont) return;
+    const border = cont.getData('highlightBorder');
+    if (!border) return;
+    // Stop any existing pulse on this border
+    if (border._pulseTween) border._pulseTween.stop();
+    border._pulseTween = this._scene.tweens.add({
+      targets: border,
+      alpha: { from: 1, to: 0.3 },
+      duration: 400,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+    this._tweens.push(border._pulseTween);
   }
 
   _onAttack({ attackerType, targetType, targetId, damage, cellId, holyBonus }, session) {
