@@ -1,7 +1,7 @@
 ---
 id: "049"
 title: "Deployment UX Overhaul — Readable Cards + Contextual Actions + Guidance"
-status: proposed
+status: applied
 date: "2026-04-05"
 specs_affected:
   - dungeon_map
