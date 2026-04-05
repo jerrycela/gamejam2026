@@ -1089,6 +1089,26 @@ export default class BattleUI {
       if (baseSprite.scene) baseSprite.clearTint();
     });
     this._timers.push(timer);
+
+    // Attack bounce: quick scale up then back (monster attacks = white tint)
+    if (tint === 0xffffff && !baseSprite.getData('bouncing')) {
+      baseSprite.setData('bouncing', true);
+      const origScaleX = baseSprite.scaleX;
+      const origScaleY = baseSprite.scaleY;
+      const tween = this._scene.tweens.add({
+        targets: baseSprite,
+        scaleX: origScaleX * 1.25,
+        scaleY: origScaleY * 1.25,
+        duration: 80,
+        yoyo: true,
+        ease: 'Quad.Out',
+        onComplete: () => {
+          baseSprite.setScale(origScaleX, origScaleY);
+          baseSprite.setData('bouncing', false);
+        },
+      });
+      this._tweens.push(tween);
+    }
   }
 
   /** Shake a combat cell briefly (attack impact feedback). */
