@@ -46,6 +46,9 @@ export default class DungeonMapUI {
     // Selection state for card / monster placement
     this.selectionState = { mode: 'none', handIndex: -1, monsterId: null };
 
+    // Pending target cell for popup → monster list → placement shortcut (P049)
+    this._pendingTargetCell = null;
+
     // Scroll state
     this._scrollY    = 0;
     this._velocityY  = 0;
@@ -197,10 +200,23 @@ export default class DungeonMapUI {
    */
   enterMonsterPlacement(instanceId) {
     if (this._isAnimating) return;
+
+    // P049: if coming from cell popup action, place directly
+    if (this._pendingTargetCell) {
+      const cell = this.gameState.getCell(this._pendingTargetCell);
+      this._pendingTargetCell = null;
+      if (cell) {
+        this.selectionState = { mode: 'monster', handIndex: -1, monsterId: instanceId };
+        this._handleMonsterPlacement(cell);
+        return;
+      }
+    }
+
     this._clearSelection();
     this.selectionState = { mode: 'monster', handIndex: -1, monsterId: instanceId };
     this._highlightValidCells();
     this._rebuildHand(); // dim hand when in monster mode
+    this._updateModeText();
   }
 
   /**
@@ -607,13 +623,21 @@ export default class DungeonMapUI {
       this._handAreaContainer.remove(last, true);
     }
 
+    // Mode indicator text (Phase 2 — top 16px of hand area)
+    const modeText = scene.add.text(width / 2, 8, '', {
+      fontSize: '10px', color: '#9999bb', fontFamily: FONT_FAMILY,
+    }).setOrigin(0.5, 0.5);
+    this._handAreaContainer.add(modeText);
+    this._modeBarText = modeText;
+
     const hand = this.gameState.hand;
 
     if (!hand || hand.length === 0) {
-      const emptyText = scene.add.text(width / 2, HAND_H / 2, '翻牌取得卡牌', {
+      const emptyText = scene.add.text(width / 2, HAND_H / 2 + 8, '翻牌取得卡牌', {
         fontSize: '14px', color: '#9999bb', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5);
       this._handAreaContainer.add(emptyText);
+      this._updateModeText();
       return;
     }
 
@@ -621,10 +645,11 @@ export default class DungeonMapUI {
     const gap       = 8;
     const totalW    = hand.length * thumbSize + (hand.length - 1) * gap;
     const startX    = (width - totalW) / 2 + thumbSize / 2;
+    const dataManager = this.scene.registry.get('dataManager');
 
     hand.forEach((card, i) => {
       const x = startX + i * (thumbSize + gap);
-      const y = HAND_H / 2;
+      const y = HAND_H / 2 + 8;
 
       const isSelected = (this.selectionState.mode === 'card' && this.selectionState.handIndex === i);
       const thumbW = isSelected ? 56 : thumbSize;
@@ -646,21 +671,33 @@ export default class DungeonMapUI {
       bg.fillRoundedRect(x - thumbW / 2, y - thumbH / 2, thumbW, thumbH, 6);
       bg.strokeRoundedRect(x - thumbW / 2, y - thumbH / 2, thumbW, thumbH, 6);
 
-      const label = scene.add.text(x, y - 6, card.id[0] || '?', {
-        fontSize: '16px', color: '#ffffff', fontFamily: FONT_FAMILY,
+      // Room/trap icon sprite (Phase 1)
+      const iconKey = card.type === 'room' ? this._getRoomIconKey(card.id) : 'icon_trap';
+      if (iconKey) {
+        const iconSprite = SpriteHelper.createSprite(scene, iconKey, x, y - 10, 16);
+        this._handAreaContainer.add([bg, iconSprite]);
+      } else {
+        this._handAreaContainer.add(bg);
+      }
+
+      // Chinese name (first 2 chars)
+      const def = card.type === 'room' ? dataManager.getRoom(card.id) : dataManager.getTrap(card.id);
+      const shortName = (def?.name || card.id).slice(0, 2);
+      const nameLabel = scene.add.text(x, y + 6, shortName, {
+        fontSize: '10px', color: '#ffffff', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5);
 
-      // Star dots
+      // Star dots (shifted down to y+18)
       let starStr = '';
       for (let s = 0; s < (card.starRating || 1); s++) starStr += '★';
-      const starText = scene.add.text(x, y + 12, starStr, {
+      const starText = scene.add.text(x, y + 18, starStr, {
         fontSize: '8px', color: '#f1c40f', fontFamily: FONT_FAMILY,
       }).setOrigin(0.5);
 
       // Dim non-selected cards during selection mode
       const alpha = (this.selectionState.mode === 'card' && !isSelected) ? 0.4 : 1;
       bg.setAlpha(alpha);
-      label.setAlpha(alpha);
+      nameLabel.setAlpha(alpha);
       starText.setAlpha(alpha);
 
       // Hit zone
@@ -671,8 +708,37 @@ export default class DungeonMapUI {
         this._onCardTap(i);
       });
 
-      this._handAreaContainer.add([bg, label, starText, hitZone]);
+      this._handAreaContainer.add([nameLabel, starText, hitZone]);
     });
+
+    this._updateModeText();
+  }
+
+  /** Update the mode indicator text based on current selectionState. */
+  _updateModeText() {
+    if (!this._modeBarText) return;
+    const hand = this.gameState.hand;
+    const mode = this.selectionState.mode;
+
+    if (mode === 'card') {
+      const card = hand[this.selectionState.handIndex];
+      if (card && card.type === 'room') {
+        this._modeBarText.setText('點擊格子放置房間');
+        this._modeBarText.setColor('#00ff44');
+      } else if (card && card.type === 'trap') {
+        this._modeBarText.setText('點擊格子放置陷阱');
+        this._modeBarText.setColor('#ff6644');
+      }
+    } else if (mode === 'monster') {
+      this._modeBarText.setText('點擊格子部署（金框=適性加成）');
+      this._modeBarText.setColor('#ffcc00');
+    } else if (hand && hand.length > 0) {
+      this._modeBarText.setText('點選手牌建設地城');
+      this._modeBarText.setColor('#9999bb');
+    } else {
+      this._modeBarText.setText('翻牌取得卡牌');
+      this._modeBarText.setColor('#9999bb');
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -918,6 +984,7 @@ export default class DungeonMapUI {
     this.selectionState = { mode: 'card', handIndex, monsterId: null };
     this._rebuildHand();
     this._highlightValidCells();
+    this._updateModeText();
   }
 
   // ---------------------------------------------------------------------------
@@ -1343,6 +1410,7 @@ export default class DungeonMapUI {
     this._clearPlacementHighlights();
     this._rebuildCells();
     this._rebuildHand();
+    this._updateModeText();
   }
 
   // ---------------------------------------------------------------------------
@@ -1357,7 +1425,32 @@ export default class DungeonMapUI {
 
     const popupW = 280;
     const lines = this._getCellPopupLines(cell);
-    const popupH = Math.max(160, 46 + lines.length * 22 + 40);
+
+    // P049: action buttons for normal cells
+    const actionBtns = [];
+    if (cell.type === 'normal') {
+      const hand = this.gameState.hand;
+      const hasRoom = hand.some(c => c.type === 'room');
+      const hasTrap = hand.some(c => c.type === 'trap');
+      const undeployed = this.gameState.getUndeployedMonsters();
+      const hasMonster = undeployed.length > 0;
+
+      if (hasRoom) {
+        const roomLabel = cell.room ? (hand.some(c => c.type === 'room' && c.id === cell.room.typeId) ? '升級' : '換房') : '建房';
+        actionBtns.push({ label: roomLabel, color: 0x2a3a5a, type: 'room' });
+      }
+      if (hasTrap) {
+        const trapLabel = cell.trap ? (hand.some(c => c.type === 'trap' && c.id === cell.trap.typeId) ? '升級' : '換阱') : '設阱';
+        actionBtns.push({ label: trapLabel, color: 0x5a3a2a, type: 'trap' });
+      }
+      if (hasMonster) {
+        const monLabel = cell.monster ? '換怪' : '放怪';
+        actionBtns.push({ label: monLabel, color: 0x5a2a2a, type: 'monster' });
+      }
+    }
+
+    const actionRowH = actionBtns.length > 0 ? 44 : 0;
+    const popupH = Math.max(160, 46 + lines.length * 22 + actionRowH + 40);
     const popupX = (width - popupW) / 2;
     const popupY = (height - popupH) / 2;
 
@@ -1388,6 +1481,44 @@ export default class DungeonMapUI {
         wordWrap: { width: popupW - 32 },
       })
     );
+
+    // Action buttons (P049)
+    const actionRowY = popupY + popupH - 66;
+    const totalBtnW = actionBtns.length * 56 + (actionBtns.length - 1) * 8;
+    const btnStartX = cx - totalBtnW / 2 + 28;
+
+    actionBtns.forEach((btn, i) => {
+      const bx = btnStartX + i * 64;
+      const btnBg = scene.add.rectangle(bx, actionRowY, 56, 32, btn.color, 0.9)
+        .setStrokeStyle(1, 0x888888)
+        .setInteractive({ useHandCursor: true });
+      const btnText = scene.add.text(bx, actionRowY, btn.label, {
+        fontSize: '12px', color: '#ffffff', fontFamily: FONT_FAMILY,
+      }).setOrigin(0.5);
+
+      btnBg.on('pointerdown', () => {
+        this._hidePopup();
+        if (btn.type === 'room' || btn.type === 'trap') {
+          // Auto-select first matching card
+          const idx = this.gameState.hand.findIndex(c => {
+            if (c.type !== btn.type) return false;
+            // Prefer same id for upgrade
+            if (btn.type === 'room' && cell.room) return c.id === cell.room.typeId;
+            if (btn.type === 'trap' && cell.trap) return c.id === cell.trap.typeId;
+            return true;
+          });
+          const fallbackIdx = (idx === -1) ? this.gameState.hand.findIndex(c => c.type === btn.type) : idx;
+          if (fallbackIdx !== -1) {
+            this._enterCardSelection(fallbackIdx);
+          }
+        } else if (btn.type === 'monster') {
+          this._pendingTargetCell = cell.id;
+          this.scene.switchSubstate('monsterList');
+        }
+      });
+
+      this._popupContainer.add([btnBg, btnText]);
+    });
 
     // Close button
     const closeBtn = scene.add.text(cx, popupY + popupH - 22, '[ 關閉 ]', {
