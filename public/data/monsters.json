@@ -1,0 +1,133 @@
+[
+  {
+    "id": "skeleton_knight",
+    "name": "骷髏劍士",
+    "type": ["undead", "melee"],
+    "preferredRoom": "dungeon",
+    "baseHp": 120,
+    "baseAtk": 25,
+    "baseDef": 15,
+    "attackCd": 2.0,
+    "skill": {
+      "name": "猛劈",
+      "type": "single",
+      "damage": 35,
+      "cd": 5.0,
+      "description": "對單一英雄造成物理傷害"
+    },
+    "synergyBonus": {
+      "atkMultiplier": 1.3,
+      "enhancedSkill": {
+        "name": "亡靈猛劈",
+        "damage": 50,
+        "description": "在地牢中強化：傷害提升並附帶減防效果"
+      }
+    },
+    "spriteKey": "monster_skeleton_knight"
+  },
+  {
+    "id": "goblin",
+    "name": "地精",
+    "type": ["melee", "physical"],
+    "preferredRoom": "training",
+    "baseHp": 80,
+    "baseAtk": 30,
+    "baseDef": 8,
+    "attackCd": 1.5,
+    "skill": {
+      "name": "致命突刺",
+      "type": "single",
+      "damage": 45,
+      "cd": 6.0,
+      "description": "對單一英雄發動高速突刺造成物理傷害"
+    },
+    "synergyBonus": {
+      "atkMultiplier": 1.25,
+      "enhancedSkill": {
+        "name": "訓練有素的突刺",
+        "damage": 65,
+        "description": "在訓練室中強化：攻速加快，傷害大幅提升"
+      }
+    },
+    "spriteKey": "monster_goblin"
+  },
+  {
+    "id": "bat_succubus",
+    "name": "蝙蝠魅魔",
+    "type": ["greedy", "flying"],
+    "preferredRoom": "treasury",
+    "baseHp": 90,
+    "baseAtk": 20,
+    "baseDef": 10,
+    "attackCd": 1.8,
+    "skill": {
+      "name": "魅惑尖叫",
+      "type": "aoe",
+      "damage": 25,
+      "cd": 7.0,
+      "description": "發出魅惑音波對所有英雄造成混亂與傷害"
+    },
+    "synergyBonus": {
+      "atkMultiplier": 1.2,
+      "enhancedSkill": {
+        "name": "貪婪魅惑之歌",
+        "damage": 37,
+        "description": "在寶藏室中強化：魅惑效果延長，額外降低英雄命中率"
+      }
+    },
+    "spriteKey": "monster_bat_succubus"
+  },
+  {
+    "id": "rage_demon",
+    "name": "暴躁惡魔",
+    "type": ["glutton", "melee"],
+    "preferredRoom": "hatchery",
+    "baseHp": 150,
+    "baseAtk": 35,
+    "baseDef": 12,
+    "attackCd": 2.5,
+    "skill": {
+      "name": "嘔吐攻擊",
+      "type": "single",
+      "damage": 40,
+      "cd": 6.0,
+      "description": "對單一英雄噴吐腐蝕物質造成傷害與持續中毒"
+    },
+    "synergyBonus": {
+      "atkMultiplier": 1.35,
+      "enhancedSkill": {
+        "name": "吞噬怒爆",
+        "damage": 58,
+        "description": "在孵化室中強化：體型暴增，攻擊造成範圍傷害與擊退"
+      }
+    },
+    "spriteKey": "monster_rage_demon"
+  },
+  {
+    "id": "frost_witch",
+    "name": "冰霜女巫",
+    "type": ["mage", "ice"],
+    "preferredRoom": "lab",
+    "baseHp": 70,
+    "baseAtk": 15,
+    "baseDef": 8,
+    "attackCd": 2.0,
+    "skill": {
+      "name": "極寒領域",
+      "type": "aoe",
+      "damage": 20,
+      "cd": 8.0,
+      "slowTurns": 3,
+      "description": "對所有英雄施放冰霜領域，造成傷害並使其減速 3 回合"
+    },
+    "synergyBonus": {
+      "atkMultiplier": 1.4,
+      "enhancedSkill": {
+        "name": "絕對零度",
+        "damage": 30,
+        "description": "在研究室中強化：冰霜傷害大幅提升，凍結持續時間延長至 5 回合"
+      }
+    },
+    "spriteKey": "monster_frost_witch"
+  }
+]

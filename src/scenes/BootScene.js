@@ -16,6 +16,9 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    // Set base URL for asset loading (handles GitHub Pages subpath)
+    this.load.setBaseURL(import.meta.env.BASE_URL);
+
     // Loading bar
     const { width, height } = this.scale;
     const barW = width * 0.6;

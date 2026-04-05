@@ -1,0 +1,168 @@
+[
+  {
+    "id": "trainee_swordsman",
+    "name": "見習劍士",
+    "type": ["melee", "balanced"],
+    "baseHp": 100,
+    "baseAtk": 20,
+    "baseDef": 12,
+    "attackCd": 1.8,
+    "skill": {
+      "name": "劈砍",
+      "type": "single",
+      "damage": 25,
+      "cd": 5.0,
+      "description": "對單一怪物發動有力劈砍"
+    },
+    "specialTrait": "均衡型英雄，攻防俱佳，適合作為隊伍核心；面對陷阱時有 10% 機率格擋免傷",
+    "trait": { "id": "trap_parry", "chance": 0.1 },
+    "spawnWeight": {
+      "normal": 5,
+      "elite": 1,
+      "boss": 0
+    },
+    "spriteKey": "hero_trainee_swordsman"
+  },
+  {
+    "id": "light_archer",
+    "name": "光弓獵手",
+    "type": ["ranged", "physical"],
+    "baseHp": 70,
+    "baseAtk": 25,
+    "baseDef": 6,
+    "attackCd": 2.0,
+    "skill": {
+      "name": "穿透射擊",
+      "type": "single",
+      "damage": 30,
+      "cd": 5.0,
+      "description": "射出穿透箭矢對單一目標造成傷害，可跳過第一個陷阱"
+    },
+    "specialTrait": "遠程攻擊手，可自動跳過路徑中第一個觸發的陷阱；對飛行型怪物傷害提升 20%",
+    "trait": { "id": "first_trap_skip" },
+    "combatTrait": { "id": "anti_flying", "targetType": "flying", "multiplier": 1.2 },
+    "spawnWeight": {
+      "normal": 4,
+      "elite": 2,
+      "boss": 0
+    },
+    "spriteKey": "hero_light_archer"
+  },
+  {
+    "id": "priest",
+    "name": "神官",
+    "type": ["support", "holy"],
+    "baseHp": 80,
+    "baseAtk": 10,
+    "baseDef": 10,
+    "attackCd": 2.5,
+    "skill": {
+      "name": "神聖治癒",
+      "type": "heal",
+      "healAmount": 20,
+      "cd": 8.0,
+      "description": "為一名友方英雄恢復 20 點生命值"
+    },
+    "specialTrait": "隊伍治療核心，每 3 回合自動對血量最低的友方英雄施加護盾（吸收 15 點傷害）；神聖屬性使亡靈怪物受到的傷害提升 25%",
+    "trait": { "id": "anti_undead", "multiplier": 1.25 },
+    "combatTrait": { "id": "anti_undead", "targetType": "undead", "multiplier": 1.25 },
+    "spawnWeight": {
+      "normal": 3,
+      "elite": 3,
+      "boss": 1
+    },
+    "spriteKey": "hero_priest"
+  },
+  {
+    "id": "fire_mage",
+    "name": "火焰法師",
+    "type": ["ranged", "fire"],
+    "baseHp": 60,
+    "baseAtk": 30,
+    "baseDef": 5,
+    "attackCd": 2.2,
+    "skill": {
+      "name": "烈焰風暴",
+      "type": "aoe",
+      "damage": 35,
+      "cd": 7.0,
+      "description": "召喚烈焰風暴對所有怪物造成火焰傷害"
+    },
+    "specialTrait": "高爆發全域輸出，技能命中後有 30% 機率使目標燃燒（每回合 5 點持續傷害，持續 3 回合）；防禦極低，需要保護",
+    "trait": { "id": "burn_on_skill", "chance": 0.3, "damage": 5, "ticks": 3 },
+    "spawnWeight": {
+      "normal": 1,
+      "elite": 4,
+      "boss": 2
+    },
+    "spriteKey": "hero_fire_mage"
+  },
+  {
+    "id": "holy_knight",
+    "name": "聖騎士",
+    "type": ["melee", "tank"],
+    "baseHp": 160,
+    "baseAtk": 18,
+    "baseDef": 25,
+    "attackCd": 2.5,
+    "skill": {
+      "name": "聖光護盾",
+      "type": "buff",
+      "defMultiplier": 1.5,
+      "duration": 3,
+      "cd": 10.0,
+      "bonusVsUndead": true,
+      "description": "為自身施加聖光護盾，防禦力提升 50% 持續 3 回合；對亡靈怪物具有額外壓制效果"
+    },
+    "specialTrait": "最強肉盾，能承受大量傷害並保護隊友；對亡靈型怪物具有天生剋制，攻擊造成額外 35% 神聖傷害；出現在 Boss 戰的機率極高",
+    "trait": { "id": "anti_undead", "multiplier": 1.35 },
+    "combatTrait": { "id": "anti_undead", "targetType": "undead", "multiplier": 1.35 },
+    "spawnWeight": {
+      "normal": 0,
+      "elite": 3,
+      "boss": 4
+    },
+    "spriteKey": "hero_holy_knight"
+  },
+  {
+    "id": "thief",
+    "name": "盜賊",
+    "type": ["melee", "agile"],
+    "baseHp": 55,
+    "baseAtk": 15,
+    "baseDef": 4,
+    "attackCd": 1.3,
+    "goldValue": 80,
+    "specialTrait": "脆弱但敏捷。每通過一格偷取 15G，擊殺或俘獲可奪回被偷金幣",
+    "trait": { "id": "gold_steal", "amount": 15 },
+    "spawnWeight": {
+      "normal": 2,
+      "elite": 3,
+      "boss": 1
+    },
+    "spriteKey": "hero_thief"
+  },
+  {
+    "id": "hero_of_legend",
+    "name": "傳說勇者",
+    "type": ["melee", "holy", "legendary"],
+    "baseHp": 300,
+    "baseAtk": 50,
+    "baseDef": 30,
+    "attackCd": 2.0,
+    "skill": {
+      "name": "聖光裁決",
+      "type": "aoe",
+      "damage": 60,
+      "cd": 8.0,
+      "description": "神聖光芒席捲地城，對所有怪物造成大量傷害"
+    },
+    "specialTrait": "傳說中的勇者，只在終局決戰現身。攻守兼備，技能為全體高傷 AOE。",
+    "spawnWeight": {
+      "normal": 0,
+      "elite": 0,
+      "boss": 0
+    },
+    "spriteKey": "hero_of_legend"
+  }
+]

@@ -13,13 +13,13 @@ export default class DataManager {
 
   // Call in Phaser's preload() — registers JSON assets for loading
   registerPreload(scene) {
-    scene.load.json('data_monsters', 'src/data/monsters.json');
-    scene.load.json('data_heroes', 'src/data/heroes.json');
-    scene.load.json('data_rooms', 'src/data/rooms.json');
-    scene.load.json('data_traps', 'src/data/traps.json');
-    scene.load.json('data_drawCosts', 'src/data/drawCosts.json');
-    scene.load.json('data_unlockShop', 'src/data/unlockShop.json');
-    scene.load.json('data_boss', 'src/data/boss.json');
+    scene.load.json('data_monsters', 'data/monsters.json');
+    scene.load.json('data_heroes', 'data/heroes.json');
+    scene.load.json('data_rooms', 'data/rooms.json');
+    scene.load.json('data_traps', 'data/traps.json');
+    scene.load.json('data_drawCosts', 'data/drawCosts.json');
+    scene.load.json('data_unlockShop', 'data/unlockShop.json');
+    scene.load.json('data_boss', 'data/boss.json');
   }
 
   // Call in Phaser's create() — pulls loaded data out of cache into instance arrays

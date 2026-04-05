@@ -1,0 +1,48 @@
+const spriteManifest = [
+  { key: 'monster_skeleton_knight', path: 'sprites/monster_skeleton_knight.png' },
+  { key: 'monster_goblin',          path: 'sprites/monster_goblin.png' },
+  { key: 'monster_bat_succubus',    path: 'sprites/monster_bat_succubus.png' },
+  { key: 'monster_rage_demon',      path: 'sprites/monster_rage_demon.png' },
+  { key: 'monster_frost_witch',     path: 'sprites/monster_frost_witch.png' },
+  { key: 'hero_trainee_swordsman',  path: 'sprites/hero_trainee_swordsman.png' },
+  { key: 'hero_light_archer',       path: 'sprites/hero_light_archer.png' },
+  { key: 'hero_priest',             path: 'sprites/hero_priest.png' },
+  { key: 'hero_fire_mage',          path: 'sprites/hero_fire_mage.png' },
+  { key: 'hero_holy_knight',        path: 'sprites/hero_holy_knight.png' },
+  { key: 'hero_of_legend',          path: 'sprites/hero_of_legend.png' },
+  // Map visual assets
+  { key: 'map_bg',           path: 'sprites/map_bg.png' },
+  { key: 'cell_hatchery',    path: 'sprites/cell_hatchery.png' },
+  { key: 'cell_lab',         path: 'sprites/cell_lab.png' },
+  { key: 'cell_training',    path: 'sprites/cell_training.png' },
+  { key: 'cell_dungeon',     path: 'sprites/cell_dungeon.png' },
+  { key: 'cell_treasury',    path: 'sprites/cell_treasury.png' },
+  { key: 'cell_portal',      path: 'sprites/cell_portal.png' },
+  { key: 'cell_heart',       path: 'sprites/cell_heart.png' },
+  { key: 'cell_empty',       path: 'sprites/cell_empty.png' },
+  { key: 'icon_hatchery',    path: 'sprites/icon_hatchery.png' },
+  { key: 'icon_lab',         path: 'sprites/icon_lab.png' },
+  { key: 'icon_training',    path: 'sprites/icon_training.png' },
+  { key: 'icon_dungeon',     path: 'sprites/icon_dungeon.png' },
+  { key: 'icon_treasury',    path: 'sprites/icon_treasury.png' },
+  { key: 'path_chain',       path: 'sprites/path_chain.png' },
+  { key: 'path_arrow',       path: 'sprites/path_arrow.png' },
+  { key: 'path_diamond',     path: 'sprites/path_diamond.png' },
+  // Monster idle spritesheets (P026)
+  { key: 'monster_skeleton_knight_idle', path: 'sprites/monster_skeleton_knight_idle.png', type: 'spritesheet', frameWidth: 64, frameHeight: 64, animation: { start: 0, end: 3, frameRate: 4, repeat: -1 } },
+  { key: 'monster_goblin_idle',          path: 'sprites/monster_goblin_idle.png',          type: 'spritesheet', frameWidth: 64, frameHeight: 64, animation: { start: 0, end: 3, frameRate: 4, repeat: -1 } },
+  { key: 'monster_bat_succubus_idle',    path: 'sprites/monster_bat_succubus_idle.png',    type: 'spritesheet', frameWidth: 64, frameHeight: 64, animation: { start: 0, end: 3, frameRate: 4, repeat: -1 } },
+  { key: 'monster_rage_demon_idle',      path: 'sprites/monster_rage_demon_idle.png',      type: 'spritesheet', frameWidth: 64, frameHeight: 64, animation: { start: 0, end: 3, frameRate: 4, repeat: -1 } },
+  { key: 'monster_frost_witch_idle',     path: 'sprites/monster_frost_witch_idle.png',     type: 'spritesheet', frameWidth: 64, frameHeight: 64, animation: { start: 0, end: 3, frameRate: 4, repeat: -1 } },
+  // Hero walk spritesheets (P027)
+  { key: 'hero_trainee_swordsman_walk', path: 'sprites/hero_trainee_swordsman_walk.png', type: 'spritesheet', frameWidth: 32, frameHeight: 32, animation: { start: 0, end: 3, frameRate: 8, repeat: -1 } },
+  { key: 'hero_light_archer_walk',      path: 'sprites/hero_light_archer_walk.png',      type: 'spritesheet', frameWidth: 32, frameHeight: 32, animation: { start: 0, end: 3, frameRate: 8, repeat: -1 } },
+  { key: 'hero_priest_walk',            path: 'sprites/hero_priest_walk.png',            type: 'spritesheet', frameWidth: 32, frameHeight: 32, animation: { start: 0, end: 3, frameRate: 8, repeat: -1 } },
+  { key: 'hero_fire_mage_walk',         path: 'sprites/hero_fire_mage_walk.png',         type: 'spritesheet', frameWidth: 32, frameHeight: 32, animation: { start: 0, end: 3, frameRate: 8, repeat: -1 } },
+  { key: 'hero_holy_knight_walk',       path: 'sprites/hero_holy_knight_walk.png',       type: 'spritesheet', frameWidth: 32, frameHeight: 32, animation: { start: 0, end: 3, frameRate: 8, repeat: -1 } },
+  { key: 'hero_of_legend_walk',         path: 'sprites/hero_of_legend_walk.png',         type: 'spritesheet', frameWidth: 32, frameHeight: 32, animation: { start: 0, end: 3, frameRate: 8, repeat: -1 } },
+  // Trap icon (P026)
+  { key: 'icon_trap', path: 'sprites/icon_trap.png' },
+];
+
+export default spriteManifest;
