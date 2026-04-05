@@ -1130,7 +1130,8 @@ export default class DungeonMapUI {
       onComplete: () => {
         if (!scene || !cellCont.scene) { this._isAnimating = false; return; }
         // Fade in pedestal
-        scene.tweens.add({ targets: pedestal, alpha: 1, duration: 100 });
+        const pedestalTween = scene.tweens.add({ targets: pedestal, alpha: 1, duration: 100 });
+        this._activeAnimTweens.push(pedestalTween);
         if (scene.anims.exists(idleKey)) {
           const entry = spriteManifest.find(e => e.key === idleKey);
           const endFrame = entry?.animation?.end ?? 3;
@@ -1165,7 +1166,7 @@ export default class DungeonMapUI {
     const scene = this.scene;
     const baseSprite = cellCont.getData('baseSprite');
     if (baseSprite) {
-      scene.tweens.add({
+      const baseTween = scene.tweens.add({
         targets: baseSprite,
         alpha: 0.6,
         duration: BUFF_PULSE_DUR / 2,
@@ -1173,10 +1174,11 @@ export default class DungeonMapUI {
         delay: BUFF_DELAY,
         ease: 'Sine.InOut',
       });
+      this._activeAnimTweens.push(baseTween);
     }
     const roomIcon = cellCont.getData('roomIcon');
     if (roomIcon) {
-      scene.tweens.add({
+      const iconTween = scene.tweens.add({
         targets: roomIcon,
         scaleX: 1.3,
         scaleY: 1.3,
@@ -1185,6 +1187,7 @@ export default class DungeonMapUI {
         delay: BUFF_DELAY,
         ease: 'Sine.InOut',
       });
+      this._activeAnimTweens.push(iconTween);
     }
   }
 
