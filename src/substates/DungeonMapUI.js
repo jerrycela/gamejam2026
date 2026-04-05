@@ -1419,6 +1419,8 @@ export default class DungeonMapUI {
 
   _showCellPopup(cell) {
     this._hidePopup();
+    // Disable map zone input so popup buttons can receive taps
+    if (this._mapZone) this._mapZone.disableInteractive();
 
     const scene  = this.scene;
     const { width, height } = scene.scale;
@@ -1612,5 +1614,7 @@ export default class DungeonMapUI {
   _hidePopup() {
     this._popupContainer.setVisible(false);
     this._popupContainer.removeAll(true);
+    // Re-enable map zone input after popup closes
+    if (this._mapZone) this._mapZone.setInteractive();
   }
 }
