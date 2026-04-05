@@ -142,9 +142,9 @@ export default class BattleUI {
     }
     this._timers = [];
 
-    // Stop all tweens
+    // Stop all tweens (including paused ones like floatTween during move)
     for (const tween of this._tweens) {
-      if (tween && tween.isPlaying && tween.isPlaying()) tween.stop();
+      if (tween && tween.stop) tween.stop();
     }
     this._tweens = [];
 
