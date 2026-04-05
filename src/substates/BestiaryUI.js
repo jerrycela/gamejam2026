@@ -101,8 +101,9 @@ export default class BestiaryUI {
       fontSize: '12px', color: '#aaaaaa', fontFamily: FONT_FAMILY,
     }).setOrigin(0, 0.5);
 
-    // Skill name
-    const skillText = this._scene.add.text(56, y + 22, `技 ${hero.skill.name}`, {
+    // Skill name (thief hero has no skill property)
+    const skillName = hero.skill?.name ?? '無';
+    const skillText = this._scene.add.text(56, y + 22, `技 ${skillName}`, {
       fontSize: '11px', color: '#66aaff', fontFamily: FONT_FAMILY,
     }).setOrigin(0, 0.5);
 
