@@ -1,4 +1,5 @@
 import { TOP_HUD_HEIGHT } from '../utils/constants.js';
+import sfx from '../utils/SFXManager.js';
 
 export default class TopHUD {
   constructor(scene, gameState) {
@@ -17,6 +18,20 @@ export default class TopHUD {
       fontSize: '18px', color: '#ffffff', fontFamily: 'sans-serif', fontStyle: 'bold'
     }).setOrigin(0, 0.5);
     this.container.add(this.dayText);
+
+    // Mute toggle
+    const muteLabel = sfx.muted ? 'x' : '♪';
+    this.muteBtn = scene.add.text(this.dayText.x + this.dayText.width + 16, TOP_HUD_HEIGHT / 2, muteLabel, {
+      fontSize: '18px', color: sfx.muted ? '#666666' : '#ffffff', fontFamily: 'sans-serif',
+    }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+
+    this.muteBtn.on('pointerdown', () => {
+      const muted = sfx.toggleMute();
+      this.muteBtn.setText(muted ? 'x' : '♪');
+      this.muteBtn.setColor(muted ? '#666666' : '#ffffff');
+    });
+
+    this.container.add(this.muteBtn);
 
     // Gold (center)
     this.goldText = scene.add.text(width / 2, TOP_HUD_HEIGHT / 2, `${gameState.gold} G`, {
