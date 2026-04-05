@@ -917,6 +917,16 @@ export default class DungeonMapUI {
   _highlightValidCells() {
     this._stopPulseTweens();
 
+    // Determine if we need synergy-aware coloring (monster placement mode)
+    let monsterDef = null;
+    if (this.selectionState.mode === 'monster') {
+      const dataManager = this.scene.registry.get('dataManager');
+      const monster = this.gameState.monsterRoster.find(m => m.instanceId === this.selectionState.monsterId);
+      if (monster) {
+        monsterDef = dataManager.getMonster(monster.typeId);
+      }
+    }
+
     for (const cont of this._cellContainers) {
       const cellId = cont.getData('cellId');
       const cell   = this.gameState.getCell(cellId);
@@ -925,10 +935,15 @@ export default class DungeonMapUI {
       const highlightBorder = cont.getData('highlightBorder');
       if (!highlightBorder) continue;
 
-      // Draw green highlight border
+      // Gold for synergy match, green otherwise
+      let color = 0x00ff44;
+      if (monsterDef && cell.room && monsterDef.preferredRoom === cell.room.typeId) {
+        color = 0xffcc00;
+      }
+
       const half = CELL_SIZE / 2;
       highlightBorder.clear();
-      highlightBorder.lineStyle(3, 0x00ff44, 1);
+      highlightBorder.lineStyle(3, color, 1);
       highlightBorder.strokeRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, 8);
       highlightBorder.setVisible(true);
 
@@ -1314,7 +1329,8 @@ export default class DungeonMapUI {
     const { width, height } = scene.scale;
 
     const popupW = 280;
-    const popupH = 200;
+    const lines = this._getCellPopupLines(cell);
+    const popupH = Math.max(160, 46 + lines.length * 22 + 40);
     const popupX = (width - popupW) / 2;
     const popupY = (height - popupH) / 2;
 
@@ -1339,10 +1355,10 @@ export default class DungeonMapUI {
       fontSize: '14px', color: '#ccccff', fontFamily: FONT_FAMILY, fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
-    const lines = this._getCellPopupLines(cell);
     const contentTexts = lines.map((line, i) =>
       scene.add.text(popupX + 16, popupY + 46 + i * 22, line, {
         fontSize: '13px', color: '#dddddd', fontFamily: FONT_FAMILY,
+        wordWrap: { width: popupW - 32 },
       })
     );
 
@@ -1364,24 +1380,71 @@ export default class DungeonMapUI {
     if (cell.type === 'portal') return ['類型：入口'];
     if (cell.type === 'heart')  return ['類型：魔王巢穴'];
 
+    const dataManager = this.scene.registry.get('dataManager');
     const lines = [];
 
+    // --- Room ---
+    let roomDef = null;
     if (cell.room) {
-      lines.push(`房間：${cell.room.typeId}  Lv.${cell.room.level || 1}`);
+      roomDef = dataManager.getRoom(cell.room.typeId);
+      const roomName = roomDef?.name || cell.room.typeId;
+      lines.push(`房間：${roomName}  Lv.${cell.room.level || 1}`);
+
+      // Buff info
+      if (roomDef?.buffEffect) {
+        const buffTargetMap = { undead: '亡靈系', melee: '近戰系', glutton: '暴食系', mage: '法師系', greedy: '貪財系' };
+        const targetLabel = buffTargetMap[roomDef.buffTarget] || roomDef.buffTarget;
+
+        const level = cell.room.level || 1;
+        const levelEntry = roomDef.levels && roomDef.levels.find(l => l.level === level);
+        const lvMult = levelEntry ? levelEntry.multiplier : 1;
+        const eff = roomDef.buffEffect;
+
+        const parts = [];
+        if (eff.def) parts.push(`防禦 x${(1 + (eff.def - 1) * lvMult).toFixed(2)}`);
+        if (eff.atk) parts.push(`攻擊 x${(1 + (eff.atk - 1) * lvMult).toFixed(2)}`);
+        if (eff.skillDamage) parts.push(`技能 x${(1 + (eff.skillDamage - 1) * lvMult).toFixed(2)}`);
+        if (eff.attackCdMultiplier) parts.push(`攻速 x${(1 - (1 - eff.attackCdMultiplier) * lvMult).toFixed(2)}`);
+        if (eff.hpRegen) parts.push(`回復 ${Math.round(eff.hpRegen * lvMult)}/s`);
+
+        if (parts.length > 0) {
+          lines.push(`增益：${targetLabel} ${parts.join(', ')}`);
+        }
+      }
     } else {
       lines.push('房間：空');
     }
 
+    // --- Trap ---
     if (cell.trap) {
-      lines.push(`陷阱：${cell.trap.typeId}  Lv.${cell.trap.level || 1}`);
+      const trapDef = dataManager.getTrap(cell.trap.typeId);
+      const trapName = trapDef?.name || cell.trap.typeId;
+      lines.push(`陷阱：${trapName}  Lv.${cell.trap.level || 1}`);
     } else {
       lines.push('陷阱：無');
     }
 
+    // --- Monster ---
+    let monsterDef = null;
     if (cell.monster) {
-      lines.push(`怪物：${cell.monster.typeId}  HP ${cell.monster.currentHp}`);
+      monsterDef = dataManager.getMonster(cell.monster.typeId);
+      const monsterName = monsterDef?.name || cell.monster.typeId;
+      lines.push(`怪物：${monsterName}  HP ${cell.monster.currentHp}`);
     } else {
       lines.push('怪物：無怪物');
+    }
+
+    // --- Synergy ---
+    if (cell.room && cell.monster && monsterDef) {
+      if (monsterDef.preferredRoom === cell.room.typeId) {
+        let synergyText = `適性：加成! ATK x${monsterDef.synergyBonus?.atkMultiplier || 1}`;
+        if (monsterDef.synergyBonus?.enhancedSkill) {
+          synergyText += `+ ${monsterDef.synergyBonus.enhancedSkill.name}`;
+        }
+        lines.push(synergyText);
+      } else {
+        lines.push('適性：無');
+      }
     }
 
     return lines;
