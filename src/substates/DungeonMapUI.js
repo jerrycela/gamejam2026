@@ -704,6 +704,7 @@ export default class DungeonMapUI {
       const hitZone = scene.add.rectangle(x, y, thumbSize + 4, thumbSize + 4, 0x000000, 0)
         .setInteractive({ useHandCursor: true });
       hitZone.on('pointerdown', (pointer, lx, ly, event) => {
+        this._isHandTouch = true; // preserve scroll isolation (P051)
         event.stopPropagation();
         this._onCardTap(i);
       });
@@ -753,7 +754,9 @@ export default class DungeonMapUI {
     this._handZone = scene.add.zone(0, handY, width, HAND_H)
       .setOrigin(0, 0)
       .setInteractive();
-    this._rootContainer.add(this._handZone);
+    // Insert BEFORE _handAreaContainer so card hitZones (higher z) receive events first
+    const handAreaIdx = this._rootContainer.getIndex(this._handAreaContainer);
+    this._rootContainer.addAt(this._handZone, handAreaIdx);
 
     this._handZone.on('pointerdown', (_pointer, _lx, _ly, event) => {
       this._isHandTouch = true;
