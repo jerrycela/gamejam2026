@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { TAB_BAR_HEIGHT, TORTURE_CONFIG } from '../utils/constants.js';
+import sfx from '../utils/SFXManager.js';
 
 const SLOT_RADIUS = 45;
 const SLOT_GAP = 120;
@@ -330,6 +331,7 @@ export default class TortureUI {
 
   _onExtract(prisoner) {
     this._gameState.extractPrisoner(prisoner);
+    sfx.play('torture_convert');
     if (this._selectedPrisoner === prisoner) this._selectedPrisoner = null;
     this._scene.topHUD.update();
     this.rebuild();

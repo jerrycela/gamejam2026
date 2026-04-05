@@ -1,5 +1,6 @@
 import { rollStarRating } from '../utils/constants.js';
 import { buildUnlockedPool } from '../utils/buildUnlockedPool.js';
+import sfx from '../utils/SFXManager.js';
 
 export default class FlipEventHandler {
   constructor(scene, gameState, gameScene) {
@@ -155,6 +156,7 @@ export default class FlipEventHandler {
   _handleTreasure(flipCard, unlockCallback) {
     const gold = 100 + Math.floor(Math.random() * 201); // 100-300
     this.gameState.gold += gold;
+    sfx.play('coin');
     this._showToast(`寶藏！獲得 ${gold} 金幣！`, 1500, () => {
       this.gameState.resolveCard(flipCard.row, flipCard.col);
       this._checkDayEnd(unlockCallback);

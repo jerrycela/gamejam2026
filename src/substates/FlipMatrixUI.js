@@ -1,4 +1,5 @@
 import { EVENT_TYPES, CARD_WIDTH, CARD_HEIGHT, CARD_GAP, MATRIX_ROWS, MATRIX_COLS, TOP_HUD_HEIGHT } from '../utils/constants.js';
+import sfx from '../utils/SFXManager.js';
 
 const EVENT_ICONS = {
   normalBattle: '\u2694\uFE0F',
@@ -104,6 +105,7 @@ export default class FlipMatrixUI {
   }
 
   _playFlipAnimation(row, col, card) {
+    sfx.play('card_flip');
     const obj = this.cardObjects[row][col];
     const eventDef = EVENT_TYPES[card.eventType];
 

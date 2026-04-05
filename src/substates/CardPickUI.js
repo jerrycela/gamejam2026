@@ -1,6 +1,7 @@
 import { rollStarRating } from '../utils/constants.js';
 import { buildUnlockedPool } from '../utils/buildUnlockedPool.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
+import sfx from '../utils/SFXManager.js';
 
 export default class CardPickUI {
   constructor(scene, gameState) {
@@ -89,6 +90,7 @@ export default class CardPickUI {
 
       cardBg.on('pointerdown', () => {
         this.gameState.hand.push(option);
+        sfx.play('button_tap');
         console.log('[CardPickUI] Selected:', option);
         this._close();
       });

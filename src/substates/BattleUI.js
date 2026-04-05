@@ -3,6 +3,7 @@
 
 import { MOVE_DURATION } from '../utils/constants.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
+import sfx from '../utils/SFXManager.js';
 
 const HP_BAR_W = 30;
 const HP_BAR_H = 4;
@@ -370,6 +371,7 @@ export default class BattleUI {
 
   _onAttack({ attackerType, targetType, targetId, damage, cellId, holyBonus }, session) {
     if (this._sessionId !== session) return;
+    sfx.play('battle_hit');
     if (this._battleManager.getSpeedMultiplier() >= 10) return;
 
     if (attackerType === 'boss') {
@@ -398,6 +400,7 @@ export default class BattleUI {
 
   _onBossHit({ hero: _hero, damage, shielded }, session) {
     if (this._sessionId !== session) return;
+    sfx.play('battle_hit');
     if (this._battleManager.getSpeedMultiplier() >= 10) return;
 
     // 護盾 active 時在數字後加標記
@@ -411,6 +414,7 @@ export default class BattleUI {
 
   _onTrapTrigger({ cellId, damage }, session) {
     if (this._sessionId !== session) return;
+    sfx.play('trap_trigger');
     if (this._battleManager.getSpeedMultiplier() >= 10) return;
 
     const pos = this._dungeonMapUI.getCellPosition(cellId);
@@ -530,6 +534,7 @@ export default class BattleUI {
 
   _onGoldSteal({ cellId, amount }, session) {
     if (this._sessionId !== session) return;
+    sfx.play('coin');
     if (this._battleManager.getSpeedMultiplier() >= 10) return;
     const pos = this._dungeonMapUI.getCellPosition(cellId);
     if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, `-${amount}G`, '#f1c40f');
@@ -538,6 +543,7 @@ export default class BattleUI {
 
   _onGoldReturn({ cellId, amount }, session) {
     if (this._sessionId !== session) return;
+    sfx.play('coin');
     const pos = this._dungeonMapUI.getCellPosition(cellId);
     if (pos) this._spawnDamagePopup(pos.x, pos.y - 20, `+${amount}G`, '#2ecc71');
     if (this._scene.topHUD) this._scene.topHUD.update();
@@ -546,6 +552,7 @@ export default class BattleUI {
   _onBattleEnd({ result, kills, goldEarned }, session) {
     if (this._sessionId !== session) return;
     this._dungeonMapUI.clearForecastRoute();
+    sfx.play(result === 'defenseSuccess' ? 'victory' : 'defeat');
 
     const scene = this._scene;
     const { width, height } = scene.scale;
@@ -601,6 +608,7 @@ export default class BattleUI {
   _onBossSkill({ skillId, skillName }, session) {
     if (this._sessionId !== session) return;
     if (this._battleManager.getSpeedMultiplier() >= 10) return;
+    sfx.play('boss_appear');
 
     const heartCell = this._gameState.dungeonGrid.find(c => c.type === 'heart');
     if (!heartCell) return;
