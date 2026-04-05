@@ -3,6 +3,7 @@
 
 import { MOVE_DURATION } from '../utils/constants.js';
 import SpriteHelper from '../utils/SpriteHelper.js';
+import spriteManifest from '../data/spriteManifest.js';
 
 const HP_BAR_W = 30;
 const HP_BAR_H = 4;
@@ -189,13 +190,26 @@ export default class BattleUI {
 
     const mapCont = this._dungeonMapUI.getMapWorldContainer();
     const scene = this._scene;
+    const isHighSpeed = this._battleManager.getSpeedMultiplier() >= 10;
 
     // Container at portal position
     const container = scene.add.container(pos.x, pos.y);
 
-    // Hero sprite (or fallback circle)
-    const spriteKey = hero.typeId.startsWith('hero_') ? hero.typeId : `hero_${hero.typeId}`;
-    const sprite = SpriteHelper.createSprite(scene, spriteKey, 0, -4, 24);
+    // Derive sprite keys
+    const baseId = hero.typeId.startsWith('hero_') ? hero.typeId : `hero_${hero.typeId}`;
+    const walkKey = `${baseId}_walk`;
+
+    // Idle sprite (static image)
+    const idleSprite = SpriteHelper.createSprite(scene, baseId, 0, -4, 24);
+
+    // Walk sprite (spritesheet, hidden by default)
+    let walkSprite = null;
+    if (scene.anims.exists(walkKey)) {
+      walkSprite = scene.add.sprite(0, -4, walkKey).setOrigin(0.5);
+      walkSprite.displayWidth = 24;
+      walkSprite.displayHeight = 24;
+      walkSprite.setVisible(false);
+    }
 
     // Status ring for debuff indicators (transparent by default)
     const statusRing = scene.add.arc(0, -4, 14, 0, 360, false, 0x000000, 0);
@@ -212,15 +226,36 @@ export default class BattleUI {
     );
     hpFill.setOrigin(0, 0);
 
-    container.add([hpBg, hpFill, sprite, statusRing]);
+    const children = [hpBg, hpFill, idleSprite, statusRing];
+    if (walkSprite) children.splice(2, 0, walkSprite); // walk behind idle
+    container.add(children);
     mapCont.add(container);
+
+    // Float tween (idle breathing) — skip in high speed mode
+    let floatTween = null;
+    if (!isHighSpeed) {
+      floatTween = scene.tweens.add({
+        targets: idleSprite,
+        y: -6,
+        scaleY: 1.03,
+        duration: 1500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.InOut',
+      });
+      this._tweens.push(floatTween);
+    }
 
     this._heroVisuals.set(hero.instanceId, {
       container,
-      sprite,
+      sprite: idleSprite, // backward compat for existing HP/debuff code
+      idleSprite,
+      walkSprite,
       statusRing,
       hpBg,
       hpFill,
+      floatTween,
+      hurtTween: null,
       lerpFrom: null,
       lerpTo: null,
     });
