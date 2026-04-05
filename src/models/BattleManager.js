@@ -428,12 +428,12 @@ export default class BattleManager extends Phaser.Events.EventEmitter {
           const targets = this._heroes.filter(h => h.state === 'fighting' && h.hp > 0);
           for (const target of targets) {
             this._applyDamageToHero(target, dmg);
-            this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: target.instanceId, damage: dmg, isSkill: true, cellId: ctx.cellId });
+            this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: target.instanceId, damage: dmg, isSkill: true, skillName: skillDef.name, cellId: ctx.cellId });
             this._addCellStat(ctx.cellId, 'damage', dmg);
           }
         } else {
           this._applyDamageToHero(hero, dmg);
-          this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: hero.instanceId, damage: dmg, isSkill: true, cellId: ctx.cellId });
+          this.emit('attack', { attackerType: 'monster', attackerId: monster.instanceId, targetType: 'hero', targetId: hero.instanceId, damage: dmg, isSkill: true, skillName: skillDef.name, cellId: ctx.cellId });
           this._addCellStat(ctx.cellId, 'damage', dmg);
         }
       }

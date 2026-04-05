@@ -408,7 +408,7 @@ export default class BattleUI {
     this._tweens.push(border._pulseTween);
   }
 
-  _onAttack({ attackerType, targetType, targetId, damage, cellId, holyBonus }, session) {
+  _onAttack({ attackerType, targetType, targetId, damage, cellId, holyBonus, isSkill, skillName }, session) {
     if (this._sessionId !== session) return;
     sfx.play('battle_hit');
     // Hitstop on heavy hits
@@ -434,6 +434,17 @@ export default class BattleUI {
       // Monster attack: flash monster sprite white + shake cell
       this._flashMonsterSprite(cellId);
       this._shakeCombatCell(cellId);
+
+      // Skill name popup (debounce: same cell+skill within 500ms = skip)
+      if (isSkill && skillName && cellId) {
+        const key = `${cellId}_${skillName}`;
+        const now = Date.now();
+        if (!this._lastSkillPopup || this._lastSkillPopup.key !== key || now - this._lastSkillPopup.time > 500) {
+          this._lastSkillPopup = { key, time: now };
+          const pos = this._dungeonMapUI.getCellPosition(cellId);
+          if (pos) this._spawnSkillLabel(pos.x, pos.y - 55, skillName);
+        }
+      }
     } else if (targetType === 'monster') {
       // Hero attacks monster: show popup at cell + flash monster + shake
       const color = holyBonus ? '#ffd700' : '#ffffff';
@@ -1147,6 +1158,31 @@ export default class BattleUI {
     const tween = scene.tweens.add({
       targets: text,
       y: y - 40,
+      alpha: 0,
+      duration: 800,
+      ease: 'Power1',
+      onComplete: () => { text.destroy(); },
+    });
+    this._tweens.push(tween);
+  }
+
+  _spawnSkillLabel(x, y, skillName) {
+    const scene = this._scene;
+    const text = scene.add.text(x, y, skillName, {
+      fontSize: '11px',
+      color: '#00ddff',
+      fontFamily: FONT_FAMILY,
+      fontStyle: 'bold',
+      backgroundColor: '#000000aa',
+      padding: { x: 3, y: 1 },
+    }).setOrigin(0.5).setDepth(2010);
+
+    this._dungeonMapUI.getMapWorldContainer().add(text);
+    this._transients.push(text);
+
+    const tween = scene.tweens.add({
+      targets: text,
+      y: y - 30,
       alpha: 0,
       duration: 800,
       ease: 'Power1',
