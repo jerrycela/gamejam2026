@@ -261,16 +261,16 @@ export default class GameScene extends Phaser.Scene {
 
     // Speed buttons
     const btnDefs = [
-      { label: 'x1',   x: 40,  speed: 1 },
-      { label: 'x2',   x: 96,  speed: 2 },
-      { label: 'Skip', x: 160, speed: 10 },
+      { label: 'x1',   x: 44,  speed: 1 },
+      { label: 'x2',   x: 112, speed: 2 },
+      { label: 'Skip', x: 188, speed: 10 },
     ];
     this._speedButtons = [];
 
     for (const def of btnDefs) {
       const btn = this.add.text(def.x, botBarY, `[${def.label}]`, {
-        fontSize: '15px', color: '#aaaaff', fontFamily: 'monospace',
-        backgroundColor: '#2d2d5e', padding: { x: 8, y: 4 },
+        fontSize: '16px', color: '#aaaaff', fontFamily: 'monospace',
+        backgroundColor: '#2d2d5e', padding: { x: 16, y: 8 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
       btn.on('pointerdown', () => {
@@ -451,7 +451,7 @@ export default class GameScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
 
       const text = this.add.text(centerX, centerY, label, {
-        fontSize: '14px', color: '#aaaacc', fontFamily: 'sans-serif',
+        fontSize: '16px', color: '#aaaacc', fontFamily: 'sans-serif',
       }).setOrigin(0.5);
 
       hitZone.on('pointerdown', () => {
