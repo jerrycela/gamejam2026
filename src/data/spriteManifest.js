@@ -34,6 +34,13 @@ const spriteManifest = [
   { key: 'monster_bat_succubus_idle',    path: 'sprites/monster_bat_succubus_idle.png',    type: 'spritesheet', frameWidth: 64, frameHeight: 64, animation: { start: 0, end: 3, frameRate: 4, repeat: -1 } },
   { key: 'monster_rage_demon_idle',      path: 'sprites/monster_rage_demon_idle.png',      type: 'spritesheet', frameWidth: 64, frameHeight: 64, animation: { start: 0, end: 3, frameRate: 4, repeat: -1 } },
   { key: 'monster_frost_witch_idle',     path: 'sprites/monster_frost_witch_idle.png',     type: 'spritesheet', frameWidth: 64, frameHeight: 64, animation: { start: 0, end: 3, frameRate: 4, repeat: -1 } },
+  // Hero walk spritesheets (P027)
+  { key: 'hero_trainee_swordsman_walk', path: 'sprites/hero_trainee_swordsman_walk.png', type: 'spritesheet', frameWidth: 32, frameHeight: 32, animation: { start: 0, end: 3, frameRate: 8, repeat: -1 } },
+  { key: 'hero_light_archer_walk',      path: 'sprites/hero_light_archer_walk.png',      type: 'spritesheet', frameWidth: 32, frameHeight: 32, animation: { start: 0, end: 3, frameRate: 8, repeat: -1 } },
+  { key: 'hero_priest_walk',            path: 'sprites/hero_priest_walk.png',            type: 'spritesheet', frameWidth: 32, frameHeight: 32, animation: { start: 0, end: 3, frameRate: 8, repeat: -1 } },
+  { key: 'hero_fire_mage_walk',         path: 'sprites/hero_fire_mage_walk.png',         type: 'spritesheet', frameWidth: 32, frameHeight: 32, animation: { start: 0, end: 3, frameRate: 8, repeat: -1 } },
+  { key: 'hero_holy_knight_walk',       path: 'sprites/hero_holy_knight_walk.png',       type: 'spritesheet', frameWidth: 32, frameHeight: 32, animation: { start: 0, end: 3, frameRate: 8, repeat: -1 } },
+  { key: 'hero_of_legend_walk',         path: 'sprites/hero_of_legend_walk.png',         type: 'spritesheet', frameWidth: 32, frameHeight: 32, animation: { start: 0, end: 3, frameRate: 8, repeat: -1 } },
   // Trap icon (P026)
   { key: 'icon_trap', path: 'sprites/icon_trap.png' },
 ];
