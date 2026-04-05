@@ -118,7 +118,7 @@ export default class FlipMatrixUI {
       duration: 180,
       ease: 'Quad.easeIn',
       onComplete: () => {
-        if (obj.bg.scene === undefined) return; // safety: target destroyed
+        if (obj.bg.scene === undefined) { this._isProcessing = false; return; }
 
         // Change visuals to face-up
         obj.bg.setFillStyle(eventDef.color);
@@ -160,7 +160,7 @@ export default class FlipMatrixUI {
           duration: 220,
           ease: 'Back.easeOut',
           onComplete: () => {
-            if (obj.bg.scene === undefined) return; // safety check
+            if (obj.bg.scene === undefined) { this._isProcessing = false; return; }
 
             // Bounce: card pops up then settles
             this.scene.tweens.add({

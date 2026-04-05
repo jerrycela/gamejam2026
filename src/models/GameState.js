@@ -147,6 +147,11 @@ export default class GameState {
     monster.placedCellId = null;
   }
 
+  /** True if at least one normal cell has a monster or trap. */
+  hasAnyDefense() {
+    return this.dungeonGrid.some(c => c.type === 'normal' && (c.monster || c.trap));
+  }
+
   // --- Cell management ---
 
   getCell(cellId) {

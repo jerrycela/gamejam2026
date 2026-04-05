@@ -382,12 +382,47 @@ export default class BattleUI {
     this._tweens.push(visual.hurtTween);
   }
 
-  _onCombatStart({ cellId }, session) {
+  _onCombatStart({ hero, cellId, isBoss }, session) {
     if (this._sessionId !== session) return;
     this._dungeonMapUI.setCellHighlight(cellId, 0xff0000);
     this._pulseCellHighlight(cellId);
     // Camera: pan to combat cell
     this._dungeonMapUI.scrollToCell(cellId, 300);
+
+    // Boss fight: stabilize hero visual at heart cell
+    if (isBoss && hero) {
+      const visual = this._heroVisuals.get(hero.instanceId);
+      if (visual) {
+        // Stop breathing animation to prevent distorted visuals
+        if (visual.floatTween) {
+          visual.floatTween.stop();
+          visual.floatTween = null;
+        }
+        visual.idleSprite.y = -4;
+        visual.idleSprite.scaleY = 1;
+
+        // Ensure idle sprite shown (not walk)
+        if (visual.walkSprite) {
+          visual.walkSprite.stop();
+          visual.walkSprite.setVisible(false);
+        }
+        visual.idleSprite.setVisible(true);
+
+        // Offset heroes horizontally so they don't stack
+        const heartPos = this._dungeonMapUI.getCellPosition(cellId);
+        if (heartPos) {
+          const bossHeroCount = [...this._heroVisuals.entries()]
+            .filter(([id]) => {
+              const h = this._battleManager.getHeroes().find(bh => bh.instanceId === id);
+              return h && h.state === 'fighting' && this._battleManager._combatContexts?.get(id)?.isBoss;
+            }).length;
+          const spacing = 20;
+          const idx = bossHeroCount - 1;
+          const offsetX = (idx - (Math.max(bossHeroCount, 1) - 1) / 2) * spacing;
+          visual.container.x = heartPos.x + offsetX;
+        }
+      }
+    }
   }
 
   _pulseCellHighlight(cellId) {

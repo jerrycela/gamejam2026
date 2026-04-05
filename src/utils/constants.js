@@ -2,7 +2,7 @@
 
 export const FONT_FAMILY = '"Ark Pixel", monospace';
 
-export const MOVE_DURATION = 400; // ms per cell transition (hero movement speed)
+export const MOVE_DURATION = 700; // ms per cell transition (hero movement speed)
 
 export const EVENT_TYPES = {
   normalBattle: { weight: 30, label: '普通戰鬥', color: 0xc0392b },

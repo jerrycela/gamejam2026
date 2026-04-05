@@ -113,7 +113,7 @@ export default class BootScene extends Phaser.Scene {
     }
 
     // "Tap to Start" text with alpha pulse tween
-    const tapText = this.add.text(width / 2, height * 0.75, 'Tap to Start', {
+    const tapText = this.add.text(width / 2, height * 0.88, 'Tap to Start', {
       fontSize: '22px', color: '#ffffff', fontFamily: FONT_FAMILY
     }).setOrigin(0.5).setDepth(1);
 

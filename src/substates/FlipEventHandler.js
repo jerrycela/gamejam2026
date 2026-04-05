@@ -38,6 +38,13 @@ export default class FlipEventHandler {
   }
 
   _handleBattle(flipCard, unlockCallback) {
+    if (!this.gameState.hasAnyDefense()) {
+      this._showToast('地城毫無防備！請先部署怪物或陷阱。', 1500, () => {
+        this.gameState.resolveCard(flipCard.row, flipCard.col);
+        unlockCallback();
+      }, 'warning');
+      return;
+    }
     this._showToast('戰鬥開始！', 1000, () => {
       this.gameScene.switchSubstateForced('dungeonMap');
       this.gameScene.showBattleOverlay(flipCard.eventType);
@@ -81,6 +88,13 @@ export default class FlipEventHandler {
 
   // unlockCallback is intentionally not called — the run ends and GameScene is abandoned.
   _handleFinalBattle(flipCard, unlockCallback) {
+    if (!this.gameState.hasAnyDefense()) {
+      this._showToast('地城毫無防備！請先部署怪物或陷阱。', 1500, () => {
+        this.gameState.resolveCard(flipCard.row, flipCard.col);
+        unlockCallback();
+      }, 'warning');
+      return;
+    }
     this.gameState.finalBattleTriggered = true;
     this._showToast('勇者來襲！終局決戰！', 1500, () => {
       this.gameScene.switchSubstateForced('dungeonMap');
