@@ -525,6 +525,16 @@ export default class DungeonMapUI {
       }
     }
 
+    // Room name label — bottom center for at-a-glance readability
+    if (cell.room) {
+      const roomLabel = this._getCellLabel(cell);
+      const labelText = scene.add.text(0, 32, roomLabel, {
+        fontSize: '9px', color: '#aaaacc', fontFamily: FONT_FAMILY,
+        backgroundColor: '#00000088', padding: { x: 2, y: 1 },
+      }).setOrigin(0.5, 0.5);
+      cont.add(labelText);
+    }
+
     // Trap icon + backing — top-right corner (009: with backing for contrast)
     if (cell.trap) {
       const trapBg = scene.add.graphics();
@@ -917,13 +927,15 @@ export default class DungeonMapUI {
   _highlightValidCells() {
     this._stopPulseTweens();
 
-    // Determine if we need synergy-aware coloring (monster placement mode)
+    // Determine if we need synergy-aware coloring + ghost preview (monster placement mode)
     let monsterDef = null;
+    let monsterTypeId = null;
     if (this.selectionState.mode === 'monster') {
       const dataManager = this.scene.registry.get('dataManager');
       const monster = this.gameState.monsterRoster.find(m => m.instanceId === this.selectionState.monsterId);
       if (monster) {
         monsterDef = dataManager.getMonster(monster.typeId);
+        monsterTypeId = monster.typeId;
       }
     }
 
@@ -946,6 +958,15 @@ export default class DungeonMapUI {
       highlightBorder.lineStyle(3, color, 1);
       highlightBorder.strokeRoundedRect(-half, -half, CELL_SIZE, CELL_SIZE, 8);
       highlightBorder.setVisible(true);
+
+      // Ghost preview: semi-transparent monster sprite on empty cells
+      if (monsterTypeId && !cell.monster) {
+        const ghostKey = `monster_${monsterTypeId}`;
+        const ghost = SpriteHelper.createSprite(this.scene, ghostKey, 0, 0, MONSTER_SIZE);
+        ghost.setAlpha(0.3);
+        cont.add(ghost);
+        cont.setData('ghostSprite', ghost);
+      }
 
       const tween = this.scene.tweens.add({
         targets: highlightBorder,
@@ -1306,6 +1327,12 @@ export default class DungeonMapUI {
       if (hb) {
         hb.setVisible(false);
         hb.setAlpha(1);
+      }
+      // Remove ghost preview sprites
+      const ghost = cont.getData('ghostSprite');
+      if (ghost) {
+        ghost.destroy();
+        cont.setData('ghostSprite', null);
       }
     }
   }
