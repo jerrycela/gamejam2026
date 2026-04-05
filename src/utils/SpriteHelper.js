@@ -16,7 +16,10 @@ export default class SpriteHelper {
       return img;
     }
 
-    // Fallback: gray circle
-    return scene.add.arc(x, y, displaySize / 2, 0, 360, false, 0x888888, 1);
+    // Fallback: gray circle with setTint/clearTint stubs (Arc lacks these Sprite methods)
+    const fallback = scene.add.arc(x, y, displaySize / 2, 0, 360, false, 0x888888, 1);
+    fallback.setTint = () => fallback;
+    fallback.clearTint = () => fallback;
+    return fallback;
   }
 }
