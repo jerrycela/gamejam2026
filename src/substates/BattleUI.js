@@ -477,6 +477,10 @@ export default class BattleUI {
     const pos = this._dungeonMapUI.getCellPosition(cellId);
     if (pos) {
       this._spawnDamagePopup(pos.x, pos.y - 20, damage, '#f39c12');
+      // Trap name label
+      const dataManager = this._scene.registry.get('dataManager');
+      const trapDef = dataManager.getTrap(trapTypeId);
+      if (trapDef) this._spawnSkillLabel(pos.x, pos.y - 55, trapDef.name);
       this._spawnTrapEffect(pos.x, pos.y, trapTypeId);
       // Hitstop on heavy trap damage
       if (damage >= 20) this._battleManager.pauseForHitstop(50);
